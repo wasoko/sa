@@ -1,0 +1,43 @@
+name: Deploy Stage to Subfolder
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better reference repository
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4 #with  version: 9  # latest stable
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'  # enables pnpm cache
+
+      - name: Install dependencies
+        run: pnpm install  # Adjust if using yarn/pip/etc.
+
+      - name: Build
+        run: pnpm run build  # Outputs to /dist (change if your build command differs)
+
+      - name: Deploy to gh-pages subfolder
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist  # Your built output folder
+          destination_dir: stage  # Deploys to /proj/stage in gh-pages
+          publish_branch: gh-pages
+          force_orphan: true  # Cleans previous commits in branch for fresh deploy
