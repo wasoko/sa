@@ -19,7 +19,9 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better reference repository
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4 #with  version: 9  # latest stable
+        uses: pnpm/action-setup@v4 #
+        with:
+          version: 9  # latest stable
 
       - name: Setup Node
         uses: actions/setup-node@v4
