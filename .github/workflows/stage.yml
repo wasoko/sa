@@ -23,12 +23,6 @@ jobs:
         with:
           version: 9  # latest stable
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'  # enables pnpm cache
-
       - name: Install dependencies
         run: pnpm install  # Adjust if using yarn/pip/etc.
 
