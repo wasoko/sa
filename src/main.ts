@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { computeCosineSimilarityBatched } from './webgpu';
 import { createRoot } from 'react-dom/client';
 import SideBar from './sidebar';
-import * as potree from '../../tab/src/react-comp/potree';
+import * as potree from './tw';
 import React from 'react';
 import './tw4.css';  // Adjust path if needed
 import { JSX } from 'react/jsx-runtime';
