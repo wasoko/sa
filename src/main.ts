@@ -106,7 +106,7 @@ function createRender(id: string, node: () => JSX.Element) {
 async function main() {
 
   createRender('sidebar', SideBar);
-  createRender('root', potree.CelestialGridViewer);
+  createRender('three', potree.CelestialGridViewer);
   const renderer = createRenderer();
   const { scene, camera } = createScene();
 
