@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Settings, FileJson, Search, GitBranch, ChevronLeftCircle } from 'lucide-react';
-import * as idb from '../../tab/src/idb'
-import * as fc from '../../tab/src/fc'
+import * as idb from './idb'
+import * as fc from './fc'
 import React from 'react';
 
 export const HF_OR = [

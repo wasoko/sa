@@ -1,0 +1,147 @@
+
+import * as cbor from 'cbor-x';
+import * as pako from 'pako';
+export const HF_OR = [  //'Xenova/jina-embeddings-v2-base-zh',
+  // https://developer.volcengine.com/articles/7382408396873400371
+  // 'TownsWu/PEG', // onnx missing https://developer.volcengine.com/articles/7382408396873400371
+
+  'Xenova/bge-small-zh-v1.5', // onnx of 'BAAI/bge-large-zh-v1.5',
+  'Classical/Yinka',
+  'aspire/acge_text_embedding',
+  'iampanda/zpoint_large_embedding_zh',
+  'thenlper/gte-small-zh',
+  'intfloat/multilingual-e5-small',
+  'moka-ai/m3e-base',
+  'sentence-transformers/paraphrase-MiniLM-L6-v2',
+  'sentence-transformers/all-MiniLM-L6-v2',
+  'sentence-transformers/all-mpnet-base-v2',
+  'sentence-transformers/multi-qa-mpnet-base-dot-v1',
+  'sentence-transformers/distilbert-base-nli-mean-tokens'
+];
+export const DEF_MODEL = HF_OR[0]
+export function reAddCB(callback:
+  (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void
+) {
+  chrome.runtime.onMessage.removeListener(callback)
+  chrome.runtime.onMessage.addListener(callback)
+}
+export const sttsCB =  (message:any, _s:any, _sr:any) => {
+  const dd = docDiv(message.type)
+  if (dd !==null && message.type.startsWith('stts') )
+    dd.textContent = message.stts
+  return false
+}
+export const sttsDict:{[key:string]:string} = {}
+export const stts = (str: string, scope = '') => {
+  const stKey=scope+'STTS'
+  sttsDict[stKey] = str
+  if (str.startsWith("err"))
+    console.error(str);
+  console.info(str);
+  chrome.runtime.sendMessage({type:'stts'+scope,stts:str})  // FIXME avoid recur
+  if (chrome.storage) chrome.storage.session.get({[stKey]:''}).then((items) => {
+    if (str!='')chrome.storage.session.set({[stKey]: items[stKey] + str})
+    })
+  return str;
+}
+export function docDiv(id: string) { return document.getElementById(id) as HTMLDivElement}
+export function input2options(id:string, options:string[]) {
+  const input = document.getElementById(id) as HTMLInputElement;
+  const datalist = document.createElement('datalist') as HTMLDataListElement;
+  if (input && datalist) {
+    options.forEach(i => datalist.appendChild(Object.assign(document.createElement('option'), { value: i })));
+    input.parentNode?.append(Object.assign(datalist, { id: 'datalist-' + input.id }));
+    input.setAttribute('list', datalist.id);
+  }
+}
+export async function ul(data:any, fileApi:any, obj_prefix: string, checksum:number) {
+  let start = performance.now()
+  const b2 = encZip(data)
+  nowWarn(start, `ul_${obj_prefix}`,"encZip",111)
+  if (b2.byteLength /1024/1025 > 50)
+    console.error(`${obj_prefix} too large >50MB after cbor.encode ${(b2.byteLength/1024/1024).toFixed(3)}MB`)
+  else {
+    const { error } = await fileApi.upload(`${obj_prefix}.${checksum}.cbor.pako`
+      , b2, {contentType: 'application/octet-stream', upsert: true})
+    if (error)
+      console.error(`uploading :${obj_prefix}`, error);
+    else stts(`${obj_prefix} stored in ${performance.now() - start} msec`) 
+  }
+  nowWarn(start, `ul_${obj_prefix}`)
+}
+export function encZip(data: any) { return pako.gzip(cbor.encode(data))}
+export function decZip(data: pako.Data) { return cbor.decode(pako.ungzip(data))}
+export async function dl(fileApi:any, obj_path: string) {
+  let start = performance.now()
+  const res = await fileApi.download(obj_path)
+  const buf = await res.data?.arrayBuffer()
+  nowWarn(start, `dl`,`${obj_path}`)
+  return decZip(new Uint8Array(buf ?? new Uint8Array()))
+}
+// export const pick = <T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> =>
+//   Object.fromEntries(
+//     keys.filter(key => key in obj).map(key => [key, obj[key]])
+//   ) as Pick<T, K> // Type 'T' is not assignable to type 'object'.ts(2322)
+export function escapeXml(unsafe: string): string {
+    return unsafe
+        .replaceAll('&', "&amp;")
+        .replaceAll('<', "&lt;")
+        .replaceAll('>', "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll('\'', "&apos;")
+}
+export function sumArray(...numbers: number[]): number {
+  return numbers.reduce((total, num) => total + num, 0);
+}
+export function logRet(...data: any[]) {
+  console.log(data)
+  return data.join('')
+}
+export  function sideLog(_stuff:unknown, log:boolean, ...data:any[]) {
+  if (log) console.log(data)
+  return _stuff
+}
+export  function sideDo(stuff:unknown, cond:boolean, cb:()=>void) {
+  if (cond) cb()
+  return stuff
+}
+export function nowWarn(start: DOMHighResTimeStamp, scope:string, note='', msWarn = 333, alpha = .5) {
+  const d = performance.now() - start
+  if (d > msWarn)
+    console.warn(`${scope} ${d.toLocaleString('en-US')} ms - ${note}`)
+  const key = `log-maxTime ${scope}`
+  const kl = `log-xTime ${scope}`
+  if ('undefined'!== typeof chrome) 
+    if('undefined'!== typeof chrome.storage) {
+    chrome.storage.session.get(key).then(kv=> {
+      if (kv && kv[key]) if (d > kv[key]) chrome.storage.session.set({[key]:d})
+      })
+    chrome.storage.local.get(kl).then(kv=> {
+      chrome.storage.local.set({[kl]: (kv[kl] ??d) * (1-alpha) +alpha *d })
+      })
+  }
+  return performance.now()
+}
+
+// Generics (? lodash)
+export function topFew<T>(k: number, arr: T[], compare: (a: T, b: T) => number = (a: any, b: any) => a-b): T[] {
+  if(k >=arr.length) return arr
+  const result: T[] = arr.slice(0, k); 
+  for (const item of arr) {
+    result.push(item)
+    result.sort((a, b) => compare(b, a));  // descending order
+    // init k already // if (result.length > k) 
+    result.pop();  // remove largest
+  }
+  return result;
+}
+export const fmt_md = new Intl.DateTimeFormat('en-US', {
+    month: 'numeric', // MM
+    day: '2-digit',   // dd
+    // weekday: 'short'  // ddd
+  }); // { hour: '2-digit', minute: '2-digit', hour12: false } //24hr    // style: 'percent',   // new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) // #,##0.##
+// //unused
+// function setKVjoin(rec: Record<string,string>, arg1: string, arg2: string) {
+//     rec[arg1] = arg2;
+//     return Object.keys(rec).map(key => `${key}:${rec[key]}`).join('; ')
+// }
