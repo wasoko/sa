@@ -64,8 +64,8 @@ importers:
         specifier: ^0.24.0
         version: 0.24.2
       supabase:
-        specifier: 2.66.0
-        version: 2.66.0
+        specifier: 2.62.10
+        version: 2.62.10
       tailwindcss:
         specifier: '4'
         version: 4.1.17
@@ -1007,8 +1007,8 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
-  supabase@2.66.0:
-    resolution: {integrity: sha512-hWaS3XL0G8Ir/mBVgzkMwpAS10mO6KL6tBxhy55nF2Fg3moR6CGN7ST21hLVS3R/kuV64I5GJyUoCz2ZUGWFgg==}
+  supabase@2.62.10:
+    resolution: {integrity: sha512-Zw5vDl+3KGU8VWSChLQqJ0IYfeLwLNnmW32iS54GVx52VEnOxtDBZylMx/GRGRtv5z6RtU3/Eal7H2B0S1kDcQ==}
     engines: {npm: '>=8'}
     hasBin: true
 
@@ -1845,7 +1845,7 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  supabase@2.66.0:
+  supabase@2.62.10:
     dependencies:
       bin-links: 6.0.0
       https-proxy-agent: 7.0.6
