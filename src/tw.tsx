@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { useRef, useEffect } from 'react';
-
+import { useRef, useEffect, useState } from 'react';
+import { ListTx } from './grid';
 // Function to create the celestial grid
-function createCelestialGrid(spacing: number, radius: number): THREE.Group {
+function createCelestialGrid(spacing: number, radius: number, panY:number): THREE.Group {
   const group = new THREE.Group();
   const material = new THREE.LineBasicMaterial({ color: 0x888888 });
 
@@ -23,7 +23,8 @@ function createCelestialGrid(spacing: number, radius: number): THREE.Group {
   }
 
   // Latitudes (parallels)
-  for (let lat = -90 + spacing; lat < 90; lat += spacing) {
+  spacing /=2
+  for (let lat = -90 + (panY%spacing) + spacing; lat < 90; lat += spacing) {
     const points = [];
     for (let lon = 0; lon <= 360; lon += 1) {
       const tolat = (90 - lat) * (Math.PI / 180);
@@ -40,9 +41,8 @@ function createCelestialGrid(spacing: number, radius: number): THREE.Group {
 
   return group;
 }
-
 // Function to create a highlighted spherical rectangle for the selected grid region
-function createSphericalRect(latMin: number, latMax: number, lonMin: number, lonMax: number, radius: number): THREE.Mesh {
+function createSphericalRect(latMin: number, latMax: number, lonMin: number, lonMax: number, radius: number, panY:number): THREE.Mesh {
   const segments = 20; // Resolution for the mesh
   const geometry = new THREE.BufferGeometry();
   const vertices = [];
@@ -85,11 +85,11 @@ function createSphericalRect(latMin: number, latMax: number, lonMin: number, lon
 
   return new THREE.Mesh(geometry, material);
 }
-
 export function CelestialGridViewer() {
   const mountRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
-
+  const panYref = useRef(0);
+  const [showGrid, set_showGrid] = useState(false)
   useEffect(() => {
     if (!mountRef.current || !textRef.current) return;
 
@@ -111,7 +111,7 @@ export function CelestialGridViewer() {
 
     // Invisible sphere for raycasting
     const sphereGeometry = new THREE.SphereGeometry(radius, 64, 32);
-    const sphereMaterial = new THREE.MeshBasicMaterial({ visible: false });
+    const sphereMaterial = new THREE.MeshBasicMaterial({ visible: true });
     const pickSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     scene.add(pickSphere);
 
@@ -132,7 +132,7 @@ export function CelestialGridViewer() {
         }
       }
 
-      grid = createCelestialGrid(spacing, radius);
+      grid = createCelestialGrid(spacing, radius, panYref.current);
       scene.add(grid);
     };
 
@@ -142,7 +142,9 @@ export function CelestialGridViewer() {
     const updateTextOverlay = () => {
       const direction = new THREE.Vector3();
       camera.getWorldDirection(direction);
-      textOverlay.textContent = `LookAt: x=${direction.x.toFixed(2)}, y=${direction.y.toFixed(2)}, z=${direction.z.toFixed(2)}`;
+      const newText = `LookAt: x=${direction.x.toFixed(2)}, y=${direction.y.toFixed(2)}, z=${direction.z.toFixed(2)}`;
+      if (textOverlay.textContent !== newText)
+        textOverlay.textContent = newText
     };
 
     const animate = () => {
@@ -176,48 +178,50 @@ export function CelestialGridViewer() {
     const handleMouseMove = (event: MouseEvent) => {
       if (!isDragging) return;event.preventDefault();
 
-  // Calculate delta movement
-  const deltaX = event.clientX - previousMouseX;
-  const deltaY = event.clientY - previousMouseY;
-  previousMouseX = event.clientX;
-  previousMouseY = event.clientY;
+      // Calculate delta movement
+      const deltaX = event.clientX - previousMouseX;
+      const deltaY = event.clientY - previousMouseY;
+      previousMouseX = event.clientX;
+      previousMouseY = event.clientY;
 
-  // Sensitivity for rotation (adjust as needed)
-  const deltaLon = (deltaX * 0.5 * Math.PI) / 180;
-  const deltaLat = (deltaY * 0.5 * Math.PI) / 180;
+      // Sensitivity for rotation (adjust as needed)
+      const deltaLon = (deltaX * 0.01 * Math.PI) / 180;
+      const deltaLat = (deltaY * 0.02 * Math.PI) / 180;
 
-  // Get current camera direction
-  const currentDirection = new THREE.Vector3();
-  camera.getWorldDirection(currentDirection);
+      // Get current camera direction
+      const currentDirection = new THREE.Vector3();
+      camera.getWorldDirection(currentDirection);
 
-  // Convert to lat/lon (in degrees)
-  const nlat = Math.acos(currentDirection.y);
-  const nlon = Math.atan2(currentDirection.x, currentDirection.z);
-  let lat = (Math.PI / 2 - nlat) * (180 / Math.PI);
-  let lon = nlon * (180 / Math.PI);
+      // Convert to lat/lon (in degrees)
+      const nlat = Math.acos(currentDirection.y);
+      const nlon = Math.atan2(currentDirection.x, currentDirection.z);
+      let lat = (Math.PI / 2 - nlat) * (180 / Math.PI);
+      let lon = nlon * (180 / Math.PI);
 
-  // Apply rotation
-  lon += deltaLon * (180 / Math.PI);
-  lat += deltaLat * (180 / Math.PI); // Invert for natural drag (up = positive lat)
+      // Apply rotation
+      lon += deltaLon * (180 / Math.PI);
+      // lat += deltaLat * (180 / Math.PI); // Invert for natural drag (up = positive lat)
+      panYref.current -= deltaLat * (180 / Math.PI);
+      updateGrid()
 
-  // Clamp latitude to avoid poles
-  lat = Math.max(-89.9, Math.min(89.9, lat));
+      // Clamp latitude to avoid poles
+      lat = Math.max(-89.9, Math.min(89.9, lat));
 
-  // Normalize longitude to [-180, 180]
-  lon = ((lon + 180) % 360) - 180;
+      // Normalize longitude to [-180, 180]
+      lon = ((lon + 180) % 360) - 180;
 
-  // Convert back to spherical coordinates
-  const phi = (90 - lat) * (Math.PI / 180);
-  const theta = lon * (Math.PI / 180);
+      // Convert back to spherical coordinates
+      const phi = (90 - lat) * (Math.PI / 180);
+      const theta = lon * (Math.PI / 180);
 
-  // Calculate new look-at point
-  const x = Math.sin(phi) * Math.sin(theta);
-  const y = Math.cos(phi);
-  const z = Math.sin(phi) * Math.cos(theta);
+      // Calculate new look-at point
+      const x = Math.sin(phi) * Math.sin(theta);
+      const y = Math.cos(phi);
+      const z = Math.sin(phi) * Math.cos(theta);
 
-  // Update camera
-  camera.lookAt(new THREE.Vector3(x, y, z));
-  camera.up.set(0, 1, 0); // Ensure up is +y
+      // Update camera
+      camera.lookAt(new THREE.Vector3(x, y, z));
+      camera.up.set(0, 1, 0); // Ensure up is +y
     };
 
     const handleMouseUp = () => {
@@ -275,9 +279,10 @@ export function CelestialGridViewer() {
         }
 
         // Create and add new highlight mesh
-        selectedMesh = createSphericalRect(latMin, latMax, lonMin, lonMax, radius);
+        selectedMesh = createSphericalRect(latMin, latMax, lonMin, lonMax, radius, panYref.current);
         scene.add(selectedMesh);
-      }
+      } else
+                set_showGrid((prev) => !prev);
     };
     mount.addEventListener('click', handleClick);
 
@@ -323,7 +328,9 @@ export function CelestialGridViewer() {
         if (lon < 0) lon += 360;
 
         lon += deltaLon; // Update longitude
-        lat += deltaLat; // Update latitude (inverted for natural drag direction)
+        // lat += deltaLat; // Update latitude (inverted for natural drag direction)
+      panYref.current -= deltaLat *0.01 * (180 / Math.PI);
+      updateGrid()
         lon = ((lon + 90) % 360) - 90; // Wrap longitude to [-90, 90]
         lat = Math.max(-89.9, Math.min(89.9, lat)); // Clamp latitude to avoid poles
 
@@ -365,7 +372,7 @@ export function CelestialGridViewer() {
       renderer.setSize(mount.clientWidth, mount.clientHeight);
     };
     window.addEventListener('resize', handleResize);
-
+      
     return () => {
       mount.removeChild(renderer.domElement);
       mount.removeEventListener('wheel', handleWheel);
@@ -383,12 +390,7 @@ export function CelestialGridViewer() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
-      <div
-        ref={textRef}
-        style={{
-          position: 'absolute',
-          top: '10px',
-          left: '10px',
+      <div ref={textRef} style={{ position: 'absolute', top: '10px', right: '10px',
           color: 'white',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           padding: '5px',
@@ -396,6 +398,11 @@ export function CelestialGridViewer() {
           fontFamily: 'Arial, sans-serif',
         }}
       />
+      {showGrid && <div style={{position:'fixed', zIndex:2, inset:0 }}>
+      <ListTx /> 
+      </div>}
+
     </div>
+    
   );
 }

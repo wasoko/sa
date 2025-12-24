@@ -1,29 +1,35 @@
 {
-  "name": "webgpu-cosine-graph",
+  "name": "tagweb",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
     "build": "vite build --base ./",
+    "dev": "vite --base ./",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.49.1",
+    "@tanstack/react-table": "^8.21.3",
+    "cbor-x": "1.6.0",
+    "dexie": "^3.2.7",
+    "dexie-react-hooks": "^1.1.7",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.548.0",
+    "pako": "^2.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "dexie": "^3.2.7",
-    "three": "^0.170.0",
-    "pako": "^2.1.0",
-    "cbor-x": "1.6.0"
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.16",
+    "@types/lodash": "^4.17.21",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "@types/three": "^0.180.0",
     "cross-env": "^7.0.3",
     "esbuild": "^0.24.0",
+    "supabase": "2.66.0",
     "tailwindcss": "4",
     "typescript": "^5.9.3",
     "vite": "^7.1.12"

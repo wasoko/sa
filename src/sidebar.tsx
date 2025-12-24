@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Settings, FileJson, Search, GitBranch, ChevronLeftCircle } from 'lucide-react';
-import * as idb from './idb'
 import * as fc from './fc'
 import React from 'react';
 
@@ -21,58 +20,66 @@ export const HF_OR = [
   'sentence-transformers/distilbert-base-nli-mean-tokens'
 ];
 
-export default function SideBar() {
-  const [tree, setTree] = useState<{ [key: string]: unknown; }>(idb.DEF_TREE);
+export function SideBar({tree, onChange_tree, download2merge}) {
   const [showSetup, setShowSetup] = useState(false);
-  const BTN_SIZE = 33
-
-  React.useEffect(() => {
-    (async()=> {
-      const treeData = await idb.db.tree.toArray()
-      setTree({...idb.DEF_TREE,...Object.fromEntries(treeData.map(i => [i.key, i.value]))});
-      
-    }) ()
-  },[])
-
+  const BTN_SIZE = '44px'
   React.useEffect(()=> {
-      fc.input2options('input-tree-emb_model-HF',HF_OR);
+      // fc.input2options('input-tree-emb_model-HF',HF_OR);
   }, [showSetup])
   
-  const handleTreeChange = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTree(prev => ({ ...prev, [key]: e.target.value }));
-    idb.db.tree.put({ key, value: e.target.value })
-    .catch(error => {console.error(`Error updating ${key}:`, error);});
-  };
+  const handleTreeChange = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => 
+    onChange_tree(key, e.target.value)
 
   return (
-    <div >
-      {/* Sidebar */}
-        <aside >
-        {showSetup && <button onClick={() => setShowSetup(false)}><ChevronLeftCircle size={BTN_SIZE} /></button>}
-        <button onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
-        <button><FileJson size={BTN_SIZE} /></button>
-        <button><Search size={BTN_SIZE} /></button>
-        <button><GitBranch size={BTN_SIZE} /></button>
-      {/* </div> */}
-      </aside>
-
+    <div > {/* Sidebar */} 
       {/* Setup Pane */}
       {showSetup && (
         <div >
-          <h3 >Setup</h3>
+          <h3 >Settings</h3>
           {Object.entries(tree).map(([key, value]) => (
-            <div key={key} >
+            <div key={key}>
               <label htmlFor={`input-tree-${key}`}> [{key}] </label>
-              <input
-                id={`input-tree-${key}`}type="search"
+              <input id={`input-tree-${key}`}type="search"
                 value={value as string}
-                onChange={handleTreeChange(key)}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
+                onChange={handleTreeChange(key)} />
+            </div> ))} 
+          <button onClick={download2merge}>Download</button>
+          </div>)} 
+      <aside >
+        {showSetup && <button onClick={() => setShowSetup(false)} title={"<"}><ChevronLeftCircle size={BTN_SIZE} /></button>}
+        <button title={"Set"} onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
+        <button><FileJson size={BTN_SIZE} /></button>
+        <button><Search size={BTN_SIZE} /></button>
+        <button><GitBranch size={BTN_SIZE} /></button> 
+      </aside>
     </div>
   );
 }
+
+
+const AsyncButton = ({ onClick, children, loadingText = "…", ...props }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = async (e) => {
+    setIsLoading(true);
+    try {
+      // Execute the passed function and wait for it to resolve
+      await onClick(e);
+    } catch (error) {
+      console.error("Process failed:", error);
+    } finally {
+      // Re-enable the button regardless of success or failure
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <button 
+      {...props} 
+      onClick={handleClick} 
+      disabled={isLoading || props.disabled}
+    >
+      {isLoading ? children+loadingText : children}
+    </button>
+  );
+};

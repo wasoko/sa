@@ -1,25 +1,17 @@
 import * as THREE from 'three';
 import { computeCosineSimilarityBatched } from './webgpu';
-import { createRoot } from 'react-dom/client';
-import SideBar from './sidebar';
-import * as potree from './tw';
-import React from 'react';
-import './tw4.css';  // Adjust path if needed
-import { JSX } from 'react/jsx-runtime';
 
-type Edge = { i: number; j: number; w: number };
-
-const canvas = document.getElementById('three') as HTMLCanvasElement;
-const progressEl = document.getElementById('progress') as HTMLDivElement;
-const progressBarEl = document.getElementById('progress-bar') as HTMLDivElement;
-const hudEl = document.getElementById('hud') as HTMLDivElement;
-
-function setProgress(p: number, label?: string) {
+type Edge = { i: number; j: number; w: number; };
+export const canvas = document.getElementById('three') as HTMLCanvasElement;
+const progressE = document.getElementById('progress') as HTMLDivElement;
+const progressBarE = document.getElementById('progress-bar') as HTMLDivElement;
+export const sttsE = document.getElementById('stts') as HTMLDivElement;
+export function setProgress(p: number, label?: string) {
   const pct = Math.max(0, Math.min(1, p));
-  progressBarEl.style.width = `${(pct * 100).toFixed(1)}%`;
-  if (label) hudEl.textContent = label;
+  progressBarE.style.width = `${(pct * 100).toFixed(1)}%`;
+  if (pct===1) progressE.style.display='none'
+  if (label) sttsE.textContent = label;
 }
-
 function createRenderer(): THREE.WebGLRenderer {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -33,7 +25,6 @@ function createRenderer(): THREE.WebGLRenderer {
   resize();
   return renderer;
 }
-
 function createScene() {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1000);
@@ -45,7 +36,6 @@ function createScene() {
   scene.add(ambient, dir);
   return { scene, camera };
 }
-
 function generateTestVectors(num: number, dim: number): Float32Array {
   const data = new Float32Array(num * dim);
   const rng = Math.random;
@@ -56,7 +46,6 @@ function generateTestVectors(num: number, dim: number): Float32Array {
   }
   return data;
 }
-
 function layoutCircle(n: number, radius = 2.2): THREE.Vector3[] {
   const pts: THREE.Vector3[] = [];
   for (let i = 0; i < n; i++) {
@@ -65,7 +54,6 @@ function layoutCircle(n: number, radius = 2.2): THREE.Vector3[] {
   }
   return pts;
 }
-
 function makeGraph(points: THREE.Vector3[], edges: Edge[]): THREE.Object3D {
   const group = new THREE.Group();
 
@@ -97,21 +85,12 @@ function makeGraph(points: THREE.Vector3[], edges: Edge[]): THREE.Object3D {
 
   return group;
 }
-function createRender(id: string, node: () => JSX.Element) {
-  const cb = () => createRoot(document.getElementById(id)!).render(React.createElement(node));
-  if (document.readyState === 'loading') 
-    document.addEventListener('DOMContentLoaded', cb, {once: true });
-  else cb()
-  }
-async function main() {
-
-  createRender('sidebar', SideBar);
-  createRender('three', potree.CelestialGridViewer);
+export async function main_animate() {
   const renderer = createRenderer();
   const { scene, camera } = createScene();
 
   const n = 128; // number of vectors/nodes
-  const d = 64;  // dimension
+  const d = 64; // dimension
   const vectors = generateTestVectors(n, d);
 
   setProgress(0, 'Checking WebGPU…');
@@ -144,7 +123,7 @@ async function main() {
     }
   } catch (err) {
     console.error(err);
-    hudEl.textContent = 'Falling back to CPU compute…';
+    sttsE.textContent = 'Falling back to CPU compute…';
     // Simple CPU fallback
     const norms = new Float32Array(n);
     for (let i = 0; i < n; i++) {
@@ -191,12 +170,5 @@ async function main() {
   }
   animate();
 
-  setTimeout(() => { hudEl.textContent = 'Done'; }, 800);
+  setTimeout(() => { sttsE.textContent = 'Done'; }, 800);
 }
-
-main().catch(err => {
-  console.error(err);
-  hudEl.textContent = 'Initialization failed';
-});
-
-

@@ -3,7 +3,7 @@ import * as fc from './fc';
 
 export interface Tag { tid?: number, txt: string, ref: string
   , sts?: string[], ats?:number[] // related tags
-  , dt:Date, type: 'bookmark' | 'history' | 'tab' | 'tag' } // dt=latest seen b4 save-tags 
+  , dt:Date, type: string } // dt=latest seen b4 save-tags , 'bookmark' | 'history' | 'tab' | 'tag'
 
 export const eqTags = (r1: Tag, r2: Tag) => r1.ref === r2.ref && r1.txt === r2.txt && r1.type== r2.type
 
@@ -51,6 +51,14 @@ export class DDB extends Dexie {
       bins: 'key, [key+addAt], [key+modAt]',
       refs: '++id, title, href, dt, type'
     })
+    this.version(9).stores({  // to infer 2nd generic type
+      tree: 'key', // href+title, 
+      tags: '++tid, dt, type, *sts, [ref+type]',
+      vecs: '[tid+mdl]', // for orama or psqlvec
+      stat: '[tid+key]',
+      bins: 'key, [key+addAt], [key+modAt]',
+      refs: '++id, title, href, dt, type'
+    })
     function updatingHook(mod:any) { return {...mod, modAt: new Date()}}
     function creatingHook(_priKey:any, row:any) { 
       if (!row.addAt) row.addAt = new Date();
@@ -74,3 +82,30 @@ export async function getRowsAroundTid(tid: number, n: number) {
 export const db = new DDB(); 
 
 // utils
+/** ignore identicals, split clashing by tid, ignoring exact match
+ * @param ts 
+ * @param dl 
+ * @returns 
+ */
+export function diffTags( ts:Tag[], dl:Tag[]) {
+  // TODO clean ancient backup
+  let clash: Tag[] = []
+  let newDL = dl  // default save all downloaded
+  if (ts.length>0) {
+    function tag2str(t:Tag){ `${t.ref}|${t.txt}|${t.type}|${t.sts}` } // ignore |${t.ats} 
+    const tsSet = new Set(ts.map(tag2str))
+    newDL = dl.filter(rt=> tsSet.has(tag2str(rt)))
+    if (newDL.length >33)
+      console.log(`${newDL.length} diff in idb`)
+    else
+      newDL.forEach(d=> console.log(`diff:[${d.txt}]\n  vs:(${d.ref})`))
+    // upsert do not 
+    const idDiff = new Set(newDL.map(t=> t.tid))
+    if (ts.some(t=> idDiff.has(t.tid))) {
+      clash = ts.filter(t=> idDiff.has(t.tid))
+      const idClash = new Set(clash.map(t=> t.tid))
+      newDL = newDL.filter(t=> idClash.has(t.tid))
+    }
+  }
+  return { newDL, clash}
+}

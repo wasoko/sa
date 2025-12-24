@@ -38,7 +38,7 @@ export const stts = (str: string, scope = '') => {
   if (str.startsWith("err"))
     console.error(str);
   console.info(str);
-  chrome.runtime.sendMessage({type:'stts'+scope,stts:str})  // FIXME avoid recur
+  if (chrome.runtime) chrome.runtime.sendMessage({type:'stts'+scope,stts:str})  // FIXME avoid recur
   if (chrome.storage) chrome.storage.session.get({[stKey]:''}).then((items) => {
     if (str!='')chrome.storage.session.set({[stKey]: items[stKey] + str})
     })
