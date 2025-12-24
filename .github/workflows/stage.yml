@@ -34,7 +34,9 @@ jobs:
           cache: 'pnpm'  # enables pnpm cache
 
       - name: Install dependencies
-        run: pnpm install  # Adjust if using yarn/pip/etc.
+        run: |
+          pnpm config set side-effects-cache false
+          pnpm install --foreground-scripts
 
       - name: Build
         run: pnpm run build  # Outputs to /dist (change if your build command differs)
