@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import WebGL from 'three/addons/capabilities/WebGL.js';
+
 import { useRef, useEffect, useState } from 'react';
 import { ListTx } from './grid';
 // Function to create the celestial grid
@@ -85,6 +87,17 @@ function createSphericalRect(latMin: number, latMax: number, lonMin: number, lon
 
   return new THREE.Mesh(geometry, material);
 }
+function getRender() {
+// 1. Detection & Fallback
+  if (WebGL.isWebGL2Available())
+    return new THREE.WebGLRenderer({ antialias: true })
+  const canvas = document.createElement('canvas')
+  return new THREE.WebGLRenderer({ 
+    canvas: canvas, context: canvas.getContext( 
+    WebGL.isWebGL2Available()?'webgl2': 'webgl') as WebGLRenderingContext
+ })
+
+}
 export function CelestialGridViewer() {
   const mountRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -100,7 +113,7 @@ export function CelestialGridViewer() {
     camera.position.set(0, 0, 0);
     camera.lookAt(0, 0, 1); // Initialize at 0 latitude (equatorial plane)
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = getRender();
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x000000);
     mount.appendChild(renderer.domElement);
