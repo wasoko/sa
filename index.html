@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="/icon-192-touch.png">
     <link rel="manifest" href="/manifest.json">
     <title>WebGPU Cosine Similarity Graph</title>
     <script type="module" src="/src/root.tsx"></script>
     <style>
+      :root {color-scheme: dark light;} /* todo light-dark() everywhere */
       html, body { height: 100%; margin: 0; background: #0b0e13; color: darkgray; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
       #app { display: flex; flex-direction: row; height: 100%; overflow: hidden; }
       canvas { display: flex; width: 100%; height: 100%; }
@@ -18,6 +19,8 @@
       .stts { position: absolute; right: 16px; bottom: 16px; background: rgba(0,0,0,0.35); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 10px; font-size: 12px; }
       a,input { color: #38bdf8; text-decoration: none; margin: 3px }
       button:hover {color:white}
+      button{color:#38bdf8; font-size:larger;}
+      /* button{background-color: light-dark(#f0f0f0, #1a1a1a);} */
     </style>
   </head>
   <body>
