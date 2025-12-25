@@ -17,8 +17,8 @@ export async function subRt(sbc: sb.SupabaseClient) {
   .order('dt', { ascending: false });
   
   if (fetchError) throw fetchError;
-  // Clear local store and populate with current remote truth
-  await db.tags.clear();
+  // // Clear local store and populate with current remote truth
+  // await db.tags.clear();
   // Helper to transform Supabase data format to your local Tag interface
   const mapToTag = (data: Rt): Tag => ({
     ref: data.ref,
@@ -85,7 +85,7 @@ export async function upsRt(ts: Tag[], sbc: sb.SupabaseClient, next_tid:number):
   //     .from('rt')
   //     .upsert([supabasePayload])
   //     .select(); // Select the data back to confirm it was successful and get the generated UUID/ID
-  const {data: tidChanges, error} = await sbc.rpc('tt.bulk_upsert_journal_v2'
+  const {data: tidChanges, error} = await sbc.schema('tt').rpc('bulk_upsert_journal_v2'
     , {payloads:supabasePayload, next_tid})
     if (error) {
       console.error("Error upserting journal entry to Supabase:", error);

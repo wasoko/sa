@@ -98,11 +98,10 @@ function getRender() {
  })
 
 }
-export function CelestialGridViewer() {
+export function CelestialGridViewer({showGrid, set_showGrid }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const panYref = useRef(0);
-  const [showGrid, set_showGrid] = useState(false)
   useEffect(() => {
     if (!mountRef.current || !textRef.current) return;
 
@@ -295,7 +294,7 @@ export function CelestialGridViewer() {
         selectedMesh = createSphericalRect(latMin, latMax, lonMin, lonMax, radius, panYref.current);
         scene.add(selectedMesh);
       } else
-                set_showGrid((prev) => !prev);
+          set_showGrid((prev) => !prev);
     };
     mount.addEventListener('click', handleClick);
 

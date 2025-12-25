@@ -62,28 +62,19 @@ const HighlightedText: React.FC<{ text: string; phrases: string[] }> = ({ text, 
   const escaped = phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
 
-  return (
-    <>
+  return ( <div>
       {text.split(regex).map((part, i) =>
         regex.test(part) ? (
           <span
             key={i}
-            style={{
-              backgroundColor: '#4ecdc4',
-              color: 'white',
-              padding: '3px 8px',
-              borderRadius: '6px',
-              fontWeight: 500,
-            }}
-          >
+            style={{ backgroundColor: '#4ecdc4',color: 'white'
+              ,padding: '3px 8px',borderRadius: '6px',fontWeight: 500,
+            }}>
             {part}
           </span>
-        ) : (
-          <span key={i}>{part}</span>
-        )
+        ) : (<span key={i}>{part}</span>)
       )}
-    </>
-  );
+    </div>);
 };
 export const scrollToElement = (tbodyRef: React.RefObject<HTMLTableSectionElement>, n:number) => {
   if (tbodyRef.current && tbodyRef.current.children.length >0) {

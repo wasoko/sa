@@ -6,7 +6,7 @@ import { SideBar } from './sidebar';
 import * as sb from '@supabase/supabase-js';
 import { main_animate, canvas, sttsE, setProgress } from './main_animate';
 import { createRoot } from 'react-dom/client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { subRt, upsRt } from './sub';
 function stts(str: string) { return sttsE.textContent = str }
 async function main() {
@@ -20,7 +20,8 @@ main().catch(err => {
 
 function RootFC() {
   const [tree, setTree] = useState<{ [key: string]: unknown; }>(idb.DEF_TREE);
-  const [waitCred, set_waitCred] = useState(tree.cred);
+  let sameCred = ''
+  const [showGrid, set_showGrid] = useState(false)
   function onChange_tree(key: string, new_value: any) {
     setTree(prev => ({ ...prev, [key]: new_value }));
     idb.db.tree.put({ key, value: new_value })
@@ -34,23 +35,14 @@ function RootFC() {
       console.log(`Total IndexedDB usage: ${estimate.usage?.toLocaleString()} bytes out of quota ${estimate.quota?.toLocaleString()}`);
     }) ()
   },[])
-  
-  // useEffect(() => {  // Set a timer to update the local state after 500ms
-  //   const timer = setTimeout(() => set_waitCred(tree.cred), 5500);
-  //   return () => clearTimeout(timer)
-  // }, [tree.cred]);
-  const sbc = React.useMemo(() => {
+  const sbc = useMemo(() => {
     if (tree.cred===idb.DEF_TREE['cred']) return
+    if (tree.cred===sameCred) return
+    sameCred = tree.cred as string
     const urlAnon = tree.cred as string;
     return sb.createClient(urlAnon.split('|')[0], urlAnon.split('|')[1]
-    // , {auth:{
-    //     storageKey: `sb-${urlAnon.replace(/[^a-z0-9]/gi, '-')}-auth-token`
-    //     , storage: {
-    //     getItem: (key) => window.localStorage.getItem(key),
-    //     setItem: (key, value) => window.localStorage.setItem(key, value),
-    //     removeItem: (key) => window.localStorage.removeItem(key),
-    //   } }} 
-  )},[tree.cred])
+    , {auth:{debug:false}}
+  )}, [tree.cred])
   useEffect(()=> {
     if (!sbc) return
     let abort = false
@@ -87,10 +79,11 @@ function RootFC() {
   }
   return (<div>
     <div style={{position:'fixed', zIndex:1, display: 'flex', flexDirection: 'row', left:0, bottom:0, }}>
-    <SideBar tree={tree} onChange_tree={onChange_tree} download2merge={dl2merge}/> 
+    <SideBar tree={tree} onChange_tree={onChange_tree} download2merge={dl2merge} 
+    flipGrid={()=>set_showGrid(!showGrid)}/> 
     </div>
     <div style={{position:'fixed', inset:0}}>
-    <tw.CelestialGridViewer /> 
+    <tw.CelestialGridViewer showGrid={showGrid} set_showGrid={set_showGrid} /> 
     </div>
     </div>)
 }

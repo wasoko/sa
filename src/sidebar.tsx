@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Settings, FileJson, Search, GitBranch, ChevronLeftCircle } from 'lucide-react';
-import * as fc from './fc'
+import { Settings, Sheet, Search, GitBranch, ChevronLeftCircle } from 'lucide-react';
 import React from 'react';
 
 export const HF_OR = [
@@ -20,9 +19,9 @@ export const HF_OR = [
   'sentence-transformers/distilbert-base-nli-mean-tokens'
 ];
 
-export function SideBar({tree, onChange_tree, download2merge}) {
+export function SideBar({tree, onChange_tree, download2merge, flipGrid}) {
   const [showSetup, setShowSetup] = useState(false);
-  const BTN_SIZE = '44px'
+  const BTN_SIZE = '77px'
   React.useEffect(()=> {
       // fc.input2options('input-tree-emb_model-HF',HF_OR);
   }, [showSetup])
@@ -43,12 +42,12 @@ export function SideBar({tree, onChange_tree, download2merge}) {
                 value={value as string}
                 onChange={handleTreeChange(key)} />
             </div> ))} 
-          <button onClick={download2merge}>Download</button>
+          <AsyncButton onClick={download2merge}>Download</AsyncButton>
           </div>)} 
       <aside >
         {showSetup && <button onClick={() => setShowSetup(false)} title={"<"}><ChevronLeftCircle size={BTN_SIZE} /></button>}
-        <button title={"Set"} onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
-        <button><FileJson size={BTN_SIZE} /></button>
+        <button title="Set" onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
+        <button title='Grid' onClick={flipGrid} ><Sheet size={BTN_SIZE} /></button>
         <button><Search size={BTN_SIZE} /></button>
         <button><GitBranch size={BTN_SIZE} /></button> 
       </aside>
@@ -59,27 +58,18 @@ export function SideBar({tree, onChange_tree, download2merge}) {
 
 const AsyncButton = ({ onClick, children, loadingText = "…", ...props }) => {
   const [isLoading, setIsLoading] = useState(false);
-
   const handleClick = async (e) => {
     setIsLoading(true);
-    try {
-      // Execute the passed function and wait for it to resolve
+    try {      // Execute the passed function and wait for it to resolve
       await onClick(e);
     } catch (error) {
       console.error("Process failed:", error);
-    } finally {
-      // Re-enable the button regardless of success or failure
-      setIsLoading(false);
-    }
+    } finally { setIsLoading(false)}
   };
-
-  return (
-    <button 
-      {...props} 
-      onClick={handleClick} 
-      disabled={isLoading || props.disabled}
-    >
-      {isLoading ? children+loadingText : children}
+  return ( <button {...props} 
+    onClick={handleClick}  disabled={isLoading || props.disabled}>
+    {/* Use a fragment to wrap children and text safely */}
+    {isLoading ? <>{children} {loadingText}</> : children}
     </button>
   );
 };
