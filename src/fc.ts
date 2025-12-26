@@ -1,6 +1,7 @@
 
 import * as cbor from 'cbor-x';
 import * as pako from 'pako';
+import { useEffect, useState } from 'react';
 export const HF_OR = [  //'Xenova/jina-embeddings-v2-base-zh',
   // https://developer.volcengine.com/articles/7382408396873400371
   // 'TownsWu/PEG', // onnx missing https://developer.volcengine.com/articles/7382408396873400371
@@ -53,6 +54,18 @@ export function input2options(id:string, options:string[]) {
     input.parentNode?.append(Object.assign(datalist, { id: 'datalist-' + input.id }));
     input.setAttribute('list', datalist.id);
   }
+}
+export function useDebounce(value, delay=400) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => { 
+    if (value==="" || value===0 ) {
+      setDebouncedValue(value)
+      return
+    }
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+      return () => clearTimeout(timer) 
+    }, [value, delay]);
+  return debouncedValue;
 }
 export async function ul(data:any, fileApi:any, obj_prefix: string, checksum:number) {
   let start = performance.now()
@@ -135,6 +148,7 @@ export function topFew<T>(k: number, arr: T[], compare: (a: T, b: T) => number =
   }
   return result;
 }
+
 export const fmt_md = new Intl.DateTimeFormat('en-US', {
     month: 'numeric', // MM
     day: '2-digit',   // dd

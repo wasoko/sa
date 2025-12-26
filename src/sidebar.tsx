@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Sheet, Search, GitBranch, ChevronLeftCircle } from 'lucide-react';
+import { Settings, Sheet, Search, GitBranch, ChevronLeftCircle, RefreshCcwDot } from 'lucide-react';
 import React from 'react';
 
 export const HF_OR = [
@@ -21,7 +21,7 @@ export const HF_OR = [
 
 export function SideBar({tree, onChange_tree, download2merge, flipGrid}) {
   const [showSetup, setShowSetup] = useState(false);
-  const BTN_SIZE = '77px'
+  const BTN_SIZE = '111px'
   React.useEffect(()=> {
       // fc.input2options('input-tree-emb_model-HF',HF_OR);
   }, [showSetup])
@@ -30,10 +30,9 @@ export function SideBar({tree, onChange_tree, download2merge, flipGrid}) {
     onChange_tree(key, e.target.value)
 
   return (
-    <div > {/* Sidebar */} 
+    <div style={{width:'100%'}}>
       {/* Setup Pane */}
-      {showSetup && (
-        <div >
+      {showSetup && (<div>
           <h3 >Settings</h3>
           {Object.entries(tree).map(([key, value]) => (
             <div key={key}>
@@ -44,12 +43,12 @@ export function SideBar({tree, onChange_tree, download2merge, flipGrid}) {
             </div> ))} 
           <AsyncButton onClick={download2merge}>Download</AsyncButton>
           </div>)} 
-      <aside >
+      <aside style={{display:'flex', overflowX:'auto'}}>
         {showSetup && <button onClick={() => setShowSetup(false)} title={"<"}><ChevronLeftCircle size={BTN_SIZE} /></button>}
-        <button title="Set" onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
+        <button title="Refresh"><RefreshCcwDot style={{ transform: 'scaleX(-1)'}} size={BTN_SIZE} /></button> 
         <button title='Grid' onClick={flipGrid} ><Sheet size={BTN_SIZE} /></button>
+        <button title="Set" onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
         <button><Search size={BTN_SIZE} /></button>
-        <button><GitBranch size={BTN_SIZE} /></button> 
       </aside>
     </div>
   );

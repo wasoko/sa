@@ -410,9 +410,9 @@ export function CelestialGridViewer({showGrid, set_showGrid }) {
           fontFamily: 'Arial, sans-serif',
         }}
       />
-      {showGrid && <div style={{position:'fixed', zIndex:2, inset:0 }}>
+      <div style={{display: showGrid? 'block':'none', position:'fixed', zIndex:2, inset:0 }}>
       <ListTx /> 
-      </div>}
+      </div>
 
     </div>
     

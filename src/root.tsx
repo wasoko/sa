@@ -78,7 +78,7 @@ function RootFC() {
     // misc hist vecs      
   }
   return (<div>
-    <div style={{position:'fixed', zIndex:1, display: 'flex', flexDirection: 'row', left:0, bottom:0, }}>
+    <div style={{position:'fixed', width:'100%', zIndex:1, display: 'flex', flexDirection: 'row', left:0, bottom:0, }}>
     <SideBar tree={tree} onChange_tree={onChange_tree} download2merge={dl2merge} 
     flipGrid={()=>set_showGrid(!showGrid)}/> 
     </div>

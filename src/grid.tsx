@@ -9,10 +9,12 @@ import {  flexRender,createColumnHelper,useReactTable,
 } from '@tanstack/react-table'; // ColumnDef,ColumnFiltersState,getFilteredRowModel,
 import * as idb from './idb'
 import * as sq from './sq.types'
+import { useDebounce } from './fc';
 // import { MinimalTextRank, textRankRobust } from '../textrank';
 
 // Define the shape of your data
-export interface HiRow { txt: string;sts?: string[];}
+export interface HiRow { txt: string;sts?: string[]; locTid?:number}
+interface AtomQuery {search:string,tags:string[],locTid?:number}
 // input: h in [0,360] and s,v in [0,1] - output: r,g,b in [0,1]
 function hsl2rgb(h,s,l) 
 { // https://stackoverflow.com/a/54014428/1773507
@@ -32,7 +34,7 @@ const getColorChar11 = (phrase: string) => {
 // It automatically re-queries and updates whenever:
 // - The parameters (tags or search) change
 // - Relevant data in the database changes
-export function useHiRows(tags: string[], search: string = '') {
+export function useHiRows(search:string,tags:string[],locTid?:number) {
   return useLiveQuery(
     async () => {
       // 1. Start with the most restrictive indexed field
@@ -40,41 +42,40 @@ export function useHiRows(tags: string[], search: string = '') {
       // 2. Filter by tags (using index if 'tags' is a MultiEntry index)
       if (tags.length > 0) {
         query = idb.db.tags.where('sts').anyOf(tags);
-      }
-      // 3. Apply secondary filters (full AND for tags + text search)
-      return await query
+      } else if (search!=="") query = query  // js custom scan (no index)
         .and(row => {
           // All selected tags must be present (AND logic)
           const matchesTags = tags.every(tag => row.sts?.includes(tag));
           // Text search in 'txt' field (case-insensitive)
-          const matchesSearch = row.txt.toLowerCase().includes(search.toLowerCase());
+          const rowText = row.txt.toLowerCase();
+          const terms = (search.match(/"[^"]*"|[^\s]+/g) || [])
+            .map(str => str.replace(/^"|"$/g, '').trim().toLowerCase())
+          const matchesSearch = terms.every(term => rowText.includes(term));
           return matchesTags && matchesSearch;
         })
-        .limit(555)
-        .toArray().then(ts=> ts.map(t=>({txt:t.txt, sts:t.sts})as HiRow));
-    },  [tags, search], [] //re-run when tags or search change, default [] empty prevent undefined
+      else if (locTid==-1) 
+        return (await query.reverse().limit(555).toArray()) as HiRow[]
+      else if (locTid) 
+        return (await idb.getRowsAroundTid(locTid, 33)) as HiRow[]
+      // 3. Apply secondary filters (full AND for tags + text search)
+      return (await query.limit(555).toArray()
+        ).map(t=>({txt:t.txt, sts:t.sts, locTid:t.tid})as HiRow);
+    },  [search,tags,locTid], [] //re-run when tags or search change, default [] empty prevent undefined
   );
 }
 // ──────── Highlighted text (unchanged) ────────
-const HighlightedText: React.FC<{ text: string; phrases: string[] }> = ({ text, phrases }) => {
-  if (!phrases.length) return <>{text}</>;
-
-  const escaped = phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+const HighlightedText: React.FC<{ txt: string; sts: string[], locTid?:number, locFn }> 
+= ({ txt: txt, sts: sts, locTid:locTid, locFn:locFn }) => {
+  if (!sts.length) return <>{txt}</>;
+  const escaped = sts.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
-
-  return ( <div>
-      {text.split(regex).map((part, i) =>
-        regex.test(part) ? (
-          <span
-            key={i}
-            style={{ backgroundColor: '#4ecdc4',color: 'white'
-              ,padding: '3px 8px',borderRadius: '6px',fontWeight: 500,
-            }}>
-            {part}
-          </span>
-        ) : (<span key={i}>{part}</span>)
-      )}
-    </div>);
+  return ( <div> {locTid && <button onClick={()=>{locFn(locTid)}}>…</button>}
+      {txt.split(regex).map((part, i) =>
+        regex.test(part) ? (<span style={{ 
+          backgroundColor: getColorChar11(part),color: 'white' 
+          , cursor: 'default', margin: '0 2px', borderRadius: '4px', padding: '2px 6px'
+            }} key={i}> {part} </span>) : (<span key={i}>{part}</span>)
+      )}</div>);
 };
 export const scrollToElement = (tbodyRef: React.RefObject<HTMLTableSectionElement>, n:number) => {
   if (tbodyRef.current && tbodyRef.current.children.length >0) {
@@ -84,10 +85,14 @@ export const scrollToElement = (tbodyRef: React.RefObject<HTMLTableSectionElemen
   }
 };
 export function ListTx() {
+  const [aQuery, set_aQuery] = useState<AtomQuery>({search:"",tags:[]})
   const [search, setSearch] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [locTid, set_locTid] = useState(-1);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const rows = useHiRows(selectedTags, search);
+  const debSearch = useDebounce(search)
+  
+  const rows = useHiRows(debSearch, selectedTags, locTid);
 
   // Configuration for slicers
   const slicers = [
@@ -100,11 +105,13 @@ export function ListTx() {
       : [...prev, tag]
     );
   };
+  function loc(tid:number) {setSearch(""); set_locTid(tid);  setSelectedTags([])}
   const columns =  // createColumnHelper<HiRow>()
   useMemo(() => [createColumnHelper<HiRow>().accessor('txt', {
         cell: ({ row }) => (
-          <HighlightedText text={row.original.txt} phrases={row.original.sts??[]} />
-        ), }),], [search, selectedTags]);
+          <HighlightedText txt={row.original.txt} sts={row.original.sts??[]}
+          locTid={row.original.locTid} locFn={loc} />
+        ), }),], [aQuery]);
 
   const table = useReactTable({
     data:rows,
@@ -116,10 +123,8 @@ export function ListTx() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
-  return ( <div style={{overflowY:'auto',WebkitOverflowScrolling: 'touch', height:'100%' }}>  {/* Table */}
-      <div><table> {/* Custom Header Bar */}
-      <thead style={{position: 'sticky', top:'0',zIndex: 10
-        ,}}><tr><th><div  style={{ display: 'flex', flexDirection: 'row', gap: '10px'}}> {/* Search Input */}
+  return ( <div style={{ height:'100%',  }}>  {/* Table WebkitOverflowScrolling: 'touch',*/}
+      <div  style={{ overflowX:'auto', display: 'flex', flexDirection: 'row', gap: '10px'}}>
         <input type="text" style={{flexGrow:1, minWidth:'111px'}}
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -133,7 +138,8 @@ export function ListTx() {
                     color: selectedTags.includes(tag) ? 'white' : 'black'
                   }}>{tag}</button>
                 ))}</div>
-          ))} </div> </div></th></tr></thead>
+          ))} </div> </div>
+      <div style={{overflowX: 'hidden', height:'100%'}}><table> {/* Custom Header Bar */}
       <tbody>{table.getRowModel().rows.map(row => (
         <tr key={row.id}>{row.getVisibleCells().map(cell => (
           <td key={cell.id}>
