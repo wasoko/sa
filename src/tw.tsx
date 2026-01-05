@@ -3,6 +3,7 @@ import WebGL from 'three/addons/capabilities/WebGL.js';
 
 import { useRef, useEffect, useState } from 'react';
 import { ListTx } from './grid';
+import { extractLinksFromSelection, markdown2tab, showOpenLinksButton } from './fc';
 // Function to create the celestial grid
 function createCelestialGrid(spacing: number, radius: number, panY:number): THREE.Group {
   const group = new THREE.Group();
@@ -98,7 +99,7 @@ function getRender() {
  })
 
 }
-export function CelestialGridViewer({showGrid, set_showGrid }) {
+export function CelestialGridViewer({showGrid, set_showGrid, ups }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const panYref = useRef(0);
@@ -384,7 +385,32 @@ export function CelestialGridViewer({showGrid, set_showGrid }) {
       renderer.setSize(mount.clientWidth, mount.clientHeight);
     };
     window.addEventListener('resize', handleResize);
-      
+  
+    async function onPasteButtonClick() {
+      try {        
+        const text = await navigator.clipboard.readText(); // 'clipboardRead' in manifest.json v3
+        markdown2tab(text);
+      } catch (err) {
+        console.error("Failed to read clipboard:", err);
+      }
+    }
+
+    const handleSelection_showOpenLinks = (event: MouseEvent | TouchEvent) => {
+      const selection = window.getSelection();
+      const selectedText = selection?.toString().trim();
+
+      if (selectedText && selectedText.length > 0) {
+        // Logic to extract links from selection
+        const links = extractLinksFromSelection(selection!);
+        if (links.length > 0) {
+          showOpenLinksButton(event, links);
+        }
+      }
+    };
+    // document.removeEventListener('mouseup', handleSelection_showOpenLinks);
+    document.addEventListener('mouseup', handleSelection_showOpenLinks);
+    document.addEventListener('touchend', handleSelection_showOpenLinks);
+
     return () => {
       mount.removeChild(renderer.domElement);
       mount.removeEventListener('wheel', handleWheel);
@@ -402,16 +428,16 @@ export function CelestialGridViewer({showGrid, set_showGrid }) {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
-      <div ref={textRef} style={{ position: 'absolute', top: '10px', right: '10px',
+      <div ref={textRef} style={{ position: 'absolute', bottom: '122px', right: '10px',
           color: 'white',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           padding: '5px',
           fontSize: '12px',
           fontFamily: 'Arial, sans-serif',
-        }}
+        }} id="stts" role="status" aria-live="polite" aria-atomic="true"
       />
       <div style={{display: showGrid? 'block':'none', position:'fixed', zIndex:2, inset:0 }}>
-      <ListTx /> 
+      <ListTx ups={ups} textRef={textRef}/> 
       </div>
 
     </div>

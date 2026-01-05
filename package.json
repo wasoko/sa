@@ -14,11 +14,13 @@
     "cbor-x": "1.6.0",
     "dexie": "^3.2.7",
     "dexie-react-hooks": "^1.1.7",
+    "framer-motion": "^12.23.26",
     "lodash": "^4.17.21",
     "lucide-react": "^0.548.0",
     "pako": "^2.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-router-dom": "^7.11.0",
     "three": "^0.170.0"
   },
   "devDependencies": {

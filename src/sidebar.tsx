@@ -19,7 +19,7 @@ export const HF_OR = [
   'sentence-transformers/distilbert-base-nli-mean-tokens'
 ];
 
-export function SideBar({tree, onChange_tree, download2merge, flipGrid}) {
+export function SideBar({tree, onChange_tree, download2merge, flipGrid, RefTag}) {
   const [showSetup, setShowSetup] = useState(false);
   const BTN_SIZE = '111px'
   React.useEffect(()=> {
@@ -45,7 +45,7 @@ export function SideBar({tree, onChange_tree, download2merge, flipGrid}) {
           </div>)} 
       <aside style={{display:'flex', overflowX:'auto'}}>
         {showSetup && <button onClick={() => setShowSetup(false)} title={"<"}><ChevronLeftCircle size={BTN_SIZE} /></button>}
-        <button title="Refresh"><RefreshCcwDot style={{ transform: 'scaleX(-1)'}} size={BTN_SIZE} /></button> 
+        <button title="Refresh" onClick={RefTag}><RefreshCcwDot style={{ transform: 'scaleX(-1)'}} size={BTN_SIZE} /></button> 
         <button title='Grid' onClick={flipGrid} ><Sheet size={BTN_SIZE} /></button>
         <button title="Set" onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
         <button><Search size={BTN_SIZE} /></button>

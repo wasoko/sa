@@ -2,6 +2,7 @@
 import * as cbor from 'cbor-x';
 import * as pako from 'pako';
 import { useEffect, useState } from 'react';
+export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }
 export const HF_OR = [  //'Xenova/jina-embeddings-v2-base-zh',
   // https://developer.volcengine.com/articles/7382408396873400371
   // 'TownsWu/PEG', // onnx missing https://developer.volcengine.com/articles/7382408396873400371
@@ -26,8 +27,8 @@ export function reAddCB(callback:
   chrome.runtime.onMessage.removeListener(callback)
   chrome.runtime.onMessage.addListener(callback)
 }
-export const sttsCB =  (message:any, _s:any, _sr:any) => {
-  const dd = docDiv(message.type)
+export const sttsCB =  (message:any, _s?:any, _sr?:any) => {
+  const dd = document.getElementById(message.type)
   if (dd !==null && message.type.startsWith('stts') )
     dd.textContent = message.stts
   return false
@@ -39,13 +40,20 @@ export const stts = (str: string, scope = '') => {
   if (str.startsWith("err"))
     console.error(str);
   console.info(str);
+  sttsCB({type: 'stts'+scope, stts: str})
   if (chrome.runtime) chrome.runtime.sendMessage({type:'stts'+scope,stts:str})  // FIXME avoid recur
   if (chrome.storage) chrome.storage.session.get({[stKey]:''}).then((items) => {
     if (str!='')chrome.storage.session.set({[stKey]: items[stKey] + str})
     })
   return str;
 }
-export function docDiv(id: string) { return document.getElementById(id) as HTMLDivElement}
+export const scrollToTbodyN = (tbodyRef: React.RefObject<HTMLTableSectionElement>, n:number) => {
+  if (tbodyRef.current && tbodyRef.current.children.length >0) {
+    const i = n>=0? n: tbodyRef.current.children.length +n
+    const scrollableElement = tbodyRef.current.children[i] as HTMLElement;
+    scrollableElement.scrollIntoView({behavior: 'smooth',block:'nearest'});
+  }
+}
 export function input2options(id:string, options:string[]) {
   const input = document.getElementById(id) as HTMLInputElement;
   const datalist = document.createElement('datalist') as HTMLDataListElement;
@@ -54,6 +62,15 @@ export function input2options(id:string, options:string[]) {
     input.parentNode?.append(Object.assign(datalist, { id: 'datalist-' + input.id }));
     input.setAttribute('list', datalist.id);
   }
+}
+
+export function markdown2tab(markdown: string) {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g; // [title](url)
+  const items = [];
+  let match;
+  while ((match = linkRegex.exec(markdown)) !== null) 
+    items.push({ txt: match[1], ref: match[2], })
+  return items
 }
 export function useDebounce(value, delay=400) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -66,6 +83,91 @@ export function useDebounce(value, delay=400) {
       return () => clearTimeout(timer) 
     }, [value, delay]);
   return debouncedValue;
+}
+export function extractLinksFromSelection(selection: Selection): string[] {
+  const links: string[] = [];
+  const range = selection.getRangeAt(0);
+  const container = document.createElement("div");
+  container.appendChild(range.cloneContents());
+
+  // Find actual <a> tags
+  const anchors = container.querySelectorAll("a");
+  anchors.forEach(a => links.push(a.href));
+
+  // Optional: Find plain text URLs using regex
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const textMatches = container.textContent?.match(urlRegex);
+  if (textMatches) links.push(...textMatches);
+
+  return [...new Set(links)]; // Remove duplicates
+}
+export function showOpenLinksButton(event: MouseEvent | TouchEvent, links: string[]) {
+  // 1. Remove any existing button first
+  const existingBtn = document.getElementById('floating-open-links');
+  if (existingBtn) existingBtn.remove();
+
+  // 2. Get selection coordinates
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+  
+  const range = selection.getRangeAt(0);
+  const rect = range.getBoundingClientRect(); // Viewport coordinates
+
+  // 3. Create the button
+  const btn = document.createElement('button');
+  btn.id = 'floating-open-links';
+  btn.textContent = `Open ${links.length} link${links.length > 1 ? 's' : ''}`;
+  
+  // Style for 2025 modern look
+  Object.assign(btn.style, {
+    position: 'fixed',
+    top: `${rect.top - 40 + window.scrollY}px`, // Position above selection
+    left: `${rect.left + rect.width / 2}px`,
+    transform: 'translateX(-50%)',
+    zIndex: '9999',
+    padding: '8px 12px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+  });
+
+  // 4. Handle the opening logic
+  const handler = () => {
+    let blocked = false;
+    
+    links.forEach((url, index) => {
+      // window.open returns null if blocked by the browser
+      const newTab = window.open(url, '_blank');
+      if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+        blocked = true;
+      }
+    });
+
+    if (blocked) {
+      alert("Multiple links were blocked. Please enable popups for this site in your browser settings.");
+    }
+    
+    btn.remove();
+    selection.removeAllRanges();
+  };
+  btn.onclick = handler
+  btn.onmouseup = handler
+ // --- CLEANUP LOGIC: Remove button on unselect/click-away ---
+  const removeOnUnselect = (e: MouseEvent | TouchEvent) => {
+    if (e.target !== btn) { btn.remove();
+      document.removeEventListener('mousedown', removeOnUnselect);
+      document.removeEventListener('touchstart', removeOnUnselect);
+    }
+  };  
+  setTimeout(() => {
+    document.addEventListener('mousedown', removeOnUnselect);
+    document.addEventListener('touchstart', removeOnUnselect);
+  }, 10); // Delay slightly to prevent the current event from triggering it immediately
+  
+  document.body.appendChild(btn);
 }
 export async function ul(data:any, fileApi:any, obj_prefix: string, checksum:number) {
   let start = performance.now()
@@ -148,7 +250,6 @@ export function topFew<T>(k: number, arr: T[], compare: (a: T, b: T) => number =
   }
   return result;
 }
-
 export const fmt_md = new Intl.DateTimeFormat('en-US', {
     month: 'numeric', // MM
     day: '2-digit',   // dd
