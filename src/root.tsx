@@ -122,9 +122,10 @@ function RootFC() {
 }
 const container = document.getElementById('root');
 if (!container) throw new Error('Failed to find the root element');
+const basename = import.meta.env.PROD ? import.meta.env.BASE_URL : '/';
 createRoot(container).render(  <React.StrictMode> 
   {/* <RootFC /> */}
-  <BrowserRouter> <Routes>
+  <BrowserRouter basename={basename}> <Routes>
     <Route path="/*" element={<RootFC />} />
     {/* <Route path="/json" element={<ExcelProxy />} /> */}
   </Routes></BrowserRouter>
