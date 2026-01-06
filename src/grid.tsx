@@ -89,6 +89,7 @@ export function ListTx({ups, textRef}) {
   const [locTid, set_locTid] = useState(-1);
   const [showEditTag, set_showEditTag] = useState(false)
   const [tag2edit, set_tag2edit] = useState<idb.Tag>()
+  const basename = import.meta.env.PROD ? import.meta.env.BASE_URL : '/';
   const { '*': currentTagsPath } = useParams<{ '*': string }>();
   const selectedTags = useMemo(() => 
     currentTagsPath?.split('/').filter(Boolean) || []

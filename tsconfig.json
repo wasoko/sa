@@ -4,7 +4,7 @@
     "useDefineForClassFields": true,
     // "lib": ["ES2022", "DOM", "DOM.Iterable"],
       "lib": ["ESNext", "DOM", "WebWorker"],
-    // "types": ["vite/client"],
+    "types": ["vite/client"], // import.meta
 
     "module": "ESNext",
     "skipLibCheck": true,
