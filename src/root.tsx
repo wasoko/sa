@@ -47,7 +47,7 @@ function RootFC() {
   if (useLocation().pathname==='/json') return <TagServer />
   const [tree, setTree] = useState<{ [key: string]: unknown; }>(idb.DEF_TREE);
   let sameCred = ''
-  const [showGrid, set_showGrid] = useState(false)
+  const [showGrid, set_showGrid] = useState(true)
   const [topTag, set_topTag] = useState<idb.Tag[]>([])
   function onChange_tree(key: string, new_value: any) {
     setTree(prev => ({ ...prev, [key]: new_value }));

@@ -46,7 +46,8 @@ function useHiRows(search:string,tags:string[],locTid?:number) {
       let query = idb.db.tags.toCollection();
       // 2. Filter by tags (using index if 'tags' is a MultiEntry index)
       if (tags.length > 0) {
-        query = idb.db.tags.where('sts').anyOf(tags);
+        query = idb.db.tags.where('sts').equals(tags[0])
+        .filter(row=> tags.every(t=> row.sts?.includes(t)));
       } 
       if (search!=="") query = query  // js custom scan (no index)
         .and(row => {
@@ -119,13 +120,17 @@ export function ListTx({ups, textRef}) {
     navigate(str)
   }
   async function editTag(item:string, ) {
-    let t = await idb.db.tags.get({ref:item, type:'tag'})
-    if (!t) stts(`tag missing from indexDB`)
-    set_tag2edit(t)
-    set_showEditTag(true)
+    if (showEditTag && tag2edit?.ref===item)
+      set_showEditTag(false)
+    else {
+      let t = await idb.db.tags.get({ref:item, type:'tag'})
+      if (!t) stts(`tag missing from indexDB`)
+      set_tag2edit(t)
+      set_showEditTag(true)
+    }
   }
   function repTag(item:string, prev:string) {
-    if(item==='[Pinned]') item=''
+    if(item==='❌') item=''
     if (selectedTags.includes(item))return
     navigate(('/'+selectedTags.filter(s=>s!==prev).concat(item).join('/')))
   }
@@ -151,9 +156,10 @@ export function ListTx({ups, textRef}) {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
-  return ( <div style={{ height:'100%',  }}>  {/* Table WebkitOverflowScrolling: 'touch',*/}
-      <div  style={{ overflowX:'auto', display: 'flex', flexDirection: 'row', gap: '10px'}}>
-        {showEditTag ? <div style={{flexGrow:1, minWidth:'111px'}}>{tag2edit && tag2edit.ref+':'} <input type="text" 
+  return ( <div style={{ height:'100%', display:'flex', flexDirection:'column'  }}>  {/* Table WebkitOverflowScrolling: 'touch',*/}
+      <div  style={{ overflowX:'auto', display: 'flex', flexDirection: 'row', flexShrink:0, gap: '10px'}}>
+        {showEditTag ? <div style={{flexGrow:1, display:'flex', alignItems:'center'}}>{tag2edit && tag2edit.ref+':'} 
+          <input type="text" style={{flexGrow:1, minWidth:'111px'}}
           value={search} placeholder='(related tags) tag1 tag2 "tag 3" '
           // onChange={e => setSearch(e.target.value)}
           onKeyDown={e=> {
@@ -172,13 +178,13 @@ export function ListTx({ups, textRef}) {
           }} />}
         <div style={{display:'flex', flexDirection:'row', gap: '15px'}}>
           {selectedTags.map(selTag =>
-            <DragTag current={selTag} key={selTag} options={['[Pinned]',...ttag]}
+            <DragTag current={selTag} key={selTag} options={['❌',...ttag]}
              onSelect={repTag} onLeft={editTag} replace={true}/>
                 )} <DragTag current='[Related]' options={ttag} onSelect={(i, p)=> addTag(i)} />
                 <DragTag current='[Add]' options={ttag} onSelect={(i, p)=> addTag(i)} />
             </div> 
       </div>
-      <div style={{overflowX: 'hidden', height:'100%'}}><table> {/* Custom Header Bar */}
+      <div style={{overflowX: 'hidden', flexGrow:1}}><table> {/* Custom Header Bar */}
       <tbody>{table.getRowModel().rows.map(row => (
         <tr key={row.id}>{row.getVisibleCells().map(cell => (
           <td key={cell.id}> {flexRender(cell.column.columnDef.cell, cell.getContext())}

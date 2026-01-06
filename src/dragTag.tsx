@@ -21,9 +21,10 @@ export function DragTag({current, options, onSelect, onLeft=()=>{}, replace: can
     if (info.offset.x < X_LEFT)
       onLeft(current);
     setIsOpen(false);
+    set_isLeft(false)
   };
   return (
-    <div style={{ display: 'flex' }}>
+    <div ref={ref} style={{ display: 'flex' }}>
       <button onClick={()=>onLeft(current)}>🖉</button>{isLeft && "..."} {" "}
       <motion.button // Trigger: Opens on press down
         onPointerDown={() => setIsOpen(true)}
@@ -35,7 +36,7 @@ export function DragTag({current, options, onSelect, onLeft=()=>{}, replace: can
         {selected}
       </motion.button>
       {isOpen && (
-        <motion.div ref={ref} style={{ position: 'fixed',zIndex: 20 }}
+        <motion.div style={{ position: 'fixed',top:'55px',zIndex: 20 }}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }} > 
           {options.map((item) => ( <div key={item}
