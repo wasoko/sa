@@ -10,9 +10,9 @@ import {  flexRender,createColumnHelper,useReactTable,
 } from '@tanstack/react-table'; // ColumnDef,ColumnFiltersState,getFilteredRowModel,
 import * as idb from './idb'
 import { markdown2tab, stts, useDebounce } from './fc';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { upsRt } from './sub';
-import DragTag from './dragTag';
+import {DragTag} from './dragTag';
 // import { MinimalTextRank, textRankRobust } from '../textrank';
 // Define the shape of your data
 interface HiRow { txt: string; ref?:string; sts?: string[]; locTid?:number}
@@ -39,11 +39,13 @@ function useLiveTop(){
 // It automatically re-queries and updates whenever:
 // - The parameters (tags or search) change
 // - Relevant data in the database changes
-function useHiRows(search:string,tags:string[],locTid?:number) {
+function useHiRows(search:string,tags:string[],tidNum?:number, tidLoc?:any) {
   return useLiveQuery(
     async () => {
       // 1. Start with the most restrictive indexed field
       let query = idb.db.tags.toCollection();
+      let str2tid = Number(tidLoc)
+      if (str2tid) tidNum = str2tid
       // 2. Filter by tags (using index if 'tags' is a MultiEntry index)
       if (tags.length > 0) {
         query = idb.db.tags.where('sts').equals(tags[0])
@@ -60,14 +62,14 @@ function useHiRows(search:string,tags:string[],locTid?:number) {
           const matchesSearch = terms.every(term => rowText.includes(term));
           return matchesTags && matchesSearch;
         })
-      else if (locTid==-1) 
+      else if (tidNum==-1) 
         return (await query.reverse().limit(222).toArray()).reverse() as HiRow[]
-      else if (locTid) 
-        return (await idb.getRowsAroundTid(locTid, 33)) as HiRow[]
+      else if (tidNum) 
+        return (await idb.getRowsAroundTid(tidNum, 33)) as HiRow[]
       // 3. Apply secondary filters (full AND for tags + text search)
       const res = await query.limit(555).toArray()
       return res.map(t=>({txt:t.txt, sts:t.sts, ref:t.ref, locTid:t.tid})as HiRow)
-    },  [search,tags,locTid], [] //re-run when tags or search change, default [] empty prevent undefined
+    },  [search,tags,tidNum], [] //re-run when tags or search change, default [] empty prevent undefined
   );
 }
 
@@ -78,6 +80,7 @@ function HighlightedText ({ txt, sts, ref, locTid, locFn }:{
   const escaped = sts.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
   return ( <div> {locTid && <button onClick={()=>{locFn(locTid)}}>...</button>}
+    {locTid && <a title="locate popup..." href={`/?tid=${locTid}`}> </a>}
       {sts.length==0? txt : txt.split(regex).map((part, i) =>
         regex.test(part) ? (<span style={{ 
           backgroundColor: getColorChar11(part),color: 'white' 
@@ -87,27 +90,29 @@ function HighlightedText ({ txt, sts, ref, locTid, locFn }:{
 };
 export function ListTx({ups, textRef}) {
   const [search, setSearch] = useState('');
-  const [locTid, set_locTid] = useState(-1);
+  const [tidNum, set_tidNum] = useState(-1);
   const [showEditTag, set_showEditTag] = useState(false)
   const [tag2edit, set_tag2edit] = useState<idb.Tag>()
   const { '*': currentTagsPath } = useParams<{ '*': string }>();
+  const [searchParams] = useSearchParams();
+  const tidLoc = useMemo( ()=>searchParams.get('tid'), [searchParams])
   const selectedTags = useMemo(() => 
     currentTagsPath?.split('/').filter(Boolean) || []
   , [currentTagsPath]);
   const navigate = useNavigate();  
   const [sorting, setSorting] = useState<SortingState>([]);
   const debSearch = useDebounce(search)
-  const rows = useHiRows(debSearch, selectedTags, locTid);
+  const rows = useHiRows(debSearch, selectedTags, tidNum, tidLoc);
   const ttag = useLiveQuery( async()=> 
     (await idb.db.tags.where('type').anyOf(['topTag','tag']).sortBy('dt')).map(t=>t.ref)
   , [], [])
-  function loc(tid:number) {setSearch(""); set_locTid(tid);  navigate('/')}
+  function loc(tid:number) {setSearch(""); set_tidNum(tid);  navigate('/')}
   const columns =  // createColumnHelper<HiRow>()
   useMemo(() => [createColumnHelper<HiRow>().accessor('txt', {
         cell: ({ row }) => (
           <HighlightedText txt={row.original.txt} sts={row.original.sts??[]}
           ref={row.original.ref} locTid={row.original.locTid} locFn={loc} />
-        ), }),], [debSearch, selectedTags, locTid]);
+        ), }),], [debSearch, selectedTags, tidNum]);
   async function addTag(str:string){
     if (selectedTags.includes(str))return
     let t = await idb.db.tags.get({ref:str, type:'tag'})
@@ -130,9 +135,9 @@ export function ListTx({ups, textRef}) {
     }
   }
   function repTag(item:string, prev:string) {
-    if(item==='❌') item=''
     if (selectedTags.includes(item))return
-    navigate(('/'+selectedTags.filter(s=>s!==prev).concat(item).join('/')))
+    navigate('/'+(item==='❌' ? selectedTags : selectedTags.concat(item))
+      .filter(s=>s!==prev).join('/'))
   }
   // Handler for Ctrl+V (Keyboard Paste)
   function handlePaste(event: ClipboardEvent){
@@ -159,7 +164,7 @@ export function ListTx({ups, textRef}) {
   return ( <div style={{ height:'100%', display:'flex', flexDirection:'column'  }}>  {/* Table WebkitOverflowScrolling: 'touch',*/}
       <div  style={{ overflowX:'auto', display: 'flex', flexDirection: 'row', flexShrink:0, gap: '10px'}}>
         {showEditTag ? <div style={{flexGrow:1, display:'flex', alignItems:'center'}}>{tag2edit && tag2edit.ref+':'} 
-          <input type="text" style={{flexGrow:1, minWidth:'111px'}}
+          <input type="text" style={{flexGrow:1, minWidth:'111px', maxWidth:'88vw', fieldSizing:'content', width:'auto'}} // TODO auto expand to vw
           value={search} placeholder='(related tags) tag1 tag2 "tag 3" '
           // onChange={e => setSearch(e.target.value)}
           onKeyDown={e=> {
@@ -167,7 +172,7 @@ export function ListTx({ups, textRef}) {
             if(e.key!=='Enter') return
           }} /> </div>
           :
-          <input type="text" style={{flexGrow:1, minWidth:'111px'}}
+          <input type="text" style={{flexGrow:1, minWidth:'111px', maxWidth:'88vw', fieldSizing:'content', width:'auto'}}
           value={search} placeholder="Search... (Enter to tag, Down for history)"
           onChange={e => setSearch(e.target.value)}
           onKeyDown={e=> {
@@ -178,7 +183,7 @@ export function ListTx({ups, textRef}) {
           }} />}
         <div style={{display:'flex', flexDirection:'row', gap: '15px'}}>
           {selectedTags.map(selTag =>
-            <DragTag current={selTag} key={selTag} options={['❌',...ttag]}
+            <DragTag current={selTag} key={selTag} options={['🗙 (drop)',...ttag]}
              onSelect={repTag} onLeft={editTag} replace={true}/>
                 )} <DragTag current='[Related]' options={ttag} onSelect={(i, p)=> addTag(i)} />
                 <DragTag current='[Add]' options={ttag} onSelect={(i, p)=> addTag(i)} />

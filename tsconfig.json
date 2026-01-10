@@ -7,8 +7,8 @@
     "types": ["vite/client"], // import.meta
 
     "module": "ESNext",
-    "skipLibCheck": true,
     "jsx": "react-jsx",
+    "skipLibCheck": true,
     "allowImportingTsExtensions": true, // tsx imports
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,

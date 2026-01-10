@@ -1,4 +1,4 @@
-import './tw4.css';  // Adjust path if needed
+// import './tw4.css';  // Adjust path if needed
 import * as fc from './fc';
 import * as tw from './tw';
 import * as idb from './idb'
@@ -8,7 +8,7 @@ import { main_animate, canvas, sttsE, setProgress } from './main_animate';
 import { createRoot } from 'react-dom/client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { subRt, upsRt } from './sub';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, HashRouter } from 'react-router-dom';
 import ExcelProxy from './server';
 function stts(str: string) { return sttsE.textContent = str }
 async function main() {
@@ -113,7 +113,7 @@ function RootFC() {
   return (<div>
     <div style={{position:'fixed', width:'100%', zIndex:1, display: 'flex', flexDirection: 'row', left:0, bottom:0, }}>
     <SideBar tree={tree} onChange_tree={onChange_tree} download2merge={dl2merge} RefTag={refTag}
-    flipGrid={()=>set_showGrid(!showGrid)}/> 
+    flipGrid={()=>set_showGrid(!showGrid) } showGrid={showGrid}/> 
     </div>
     <div style={{position:'fixed', inset:0}}>
     <tw.CelestialGridViewer showGrid={showGrid} set_showGrid={set_showGrid} ups={ups} /> 
@@ -125,10 +125,10 @@ if (!container) throw new Error('Failed to find the root element');
 const basename = import.meta.env.PROD ? import.meta.env.BASE_URL : '/';
 createRoot(container).render(  <React.StrictMode> 
   {/* <RootFC /> */}
-  <BrowserRouter basename={basename}> <Routes>
+  <HashRouter basename={basename}><Routes>
     <Route path="/*" element={<RootFC />} />
     {/* <Route path="/json" element={<ExcelProxy />} /> */}
-  </Routes></BrowserRouter>
+  </Routes></HashRouter>
 </React.StrictMode>);
 
 

@@ -5,21 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <link rel="apple-touch-icon" href="/icon-192-touch.png">
+    <meta name="apple-mobile-web-app-title" content="小本本xbb">
+    <link rel="apple-touch-icon" href="/icon-192-touch.png?v=1">
     <link rel="manifest" href="/manifest.json">
     <title>WebGPU Cosine Similarity Graph</title>
     <script type="module" src="/src/root.tsx"></script>
     <style>
-      :root {color-scheme: dark light;} /* todo light-dark() everywhere */
+      :root {color-scheme: dark light; --bt-color:light-dark(#0ea5e9, #38bdf8)} /* todo light-dark() everywhere */
       html, body { height: 100%; margin: 0; background: #0b0e13; color: darkgray; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
       #app { display: flex; flex-direction: row; height: 100%; overflow: hidden; }
       canvas { display: flex; width: 100%; height: 100%; }
       .progress { position: absolute; right: 16px; bottom: 55px; width: 240px; height: 10px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,0.05) inset; }
       .progress > .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #38bdf8, #22d3ee); transition: width 120ms ease; }
       .stts { position: absolute; right: 16px; bottom: 16px; background: rgba(0,0,0,0.35); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 10px; font-size: 12px; }
-      a,input { color: #38bdf8; text-decoration: none; margin: 3px }
-      button:hover {color:white}
-      button{color:#38bdf8; font-size:larger;}
+      aside button {padding: 22px;}
+      a,input { color: var(--bt-color); text-decoration: none; margin: 3px }
+      input { border:0}
+      button:hover {color:white; background-color: #222;}
+      button.selected { background-color: #38bff83a;}
+      button{color:var(--bt-color); font-size:larger;background: none; border: none;}
+      buttonG{width: 80px;                  /* Adjust to fit your track */
+        height: 60px;
+        background: linear-gradient(
+          to bottom,
+          #e0e0e0 0%,
+          #c0c0c0 50%,
+          #a8a8a8 51%,
+          #d0d0d0 100%
+        );                            /* Silver metallic gradient */
+        border-radius: 12px;          /* Rounded ends */
+        border: 1px solid #888;       /* Subtle border for depth */
+        box-shadow: 
+          inset 0 2px 8px rgba(255, 255, 255, 0.8),  /* Inner highlight (glossy 3D) */
+          0 4px 8px rgba(0, 0, 0, 0.3);              /* Outer shadow for raised effect */
+        cursor: grab;                 /* Indicates draggable */
+        /* user-select: none; */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: #666;
+      }
       /* button{background-color: light-dark(#f0f0f0, #1a1a1a);} */
     </style>
   </head>

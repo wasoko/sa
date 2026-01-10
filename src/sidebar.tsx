@@ -19,9 +19,9 @@ export const HF_OR = [
   'sentence-transformers/distilbert-base-nli-mean-tokens'
 ];
 
-export function SideBar({tree, onChange_tree, download2merge, flipGrid, RefTag}) {
+export function SideBar({tree, onChange_tree, download2merge, flipGrid, showGrid, RefTag}) {
   const [showSetup, setShowSetup] = useState(false);
-  const BTN_SIZE = '111px'
+  const BTN_SIZE = '55px'
   React.useEffect(()=> {
       // fc.input2options('input-tree-emb_model-HF',HF_OR);
   }, [showSetup])
@@ -46,7 +46,7 @@ export function SideBar({tree, onChange_tree, download2merge, flipGrid, RefTag})
       <aside style={{display:'flex', overflowX:'auto'}}>
         {showSetup && <button onClick={() => setShowSetup(false)} title={"<"}><ChevronLeftCircle size={BTN_SIZE} /></button>}
         <button title="Refresh" onClick={RefTag}><RefreshCcwDot style={{ transform: 'scaleX(-1)'}} size={BTN_SIZE} /></button> 
-        <button title='Grid' onClick={flipGrid} ><Sheet size={BTN_SIZE} /></button>
+        <button title='Grid' className={showGrid?'selected':''} onClick={flipGrid} ><Sheet size={BTN_SIZE} /></button>
         <button title="Set" onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
         <button><Search size={BTN_SIZE} /></button>
       </aside>

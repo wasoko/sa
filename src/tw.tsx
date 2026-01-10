@@ -103,6 +103,15 @@ export function CelestialGridViewer({showGrid, set_showGrid, ups }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const panYref = useRef(0);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  
+  // Update canvas pointer-events when showGrid changes
+  useEffect(() => {
+    if (rendererRef.current?.domElement) {
+      rendererRef.current.domElement.style.pointerEvents = showGrid ? 'none' : 'auto';
+    }
+  }, [showGrid]);
+  
   useEffect(() => {
     if (!mountRef.current || !textRef.current) return;
 
@@ -114,9 +123,11 @@ export function CelestialGridViewer({showGrid, set_showGrid, ups }) {
     camera.lookAt(0, 0, 1); // Initialize at 0 latitude (equatorial plane)
 
     const renderer = getRender();
+    rendererRef.current = renderer;
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x000000);
     mount.appendChild(renderer.domElement);
+    renderer.domElement.style.pointerEvents = showGrid ? 'none' : 'auto';
 
     const radius = 100; // Arbitrary large radius for the sphere grid
     let grid: THREE.Group | null = null;
@@ -436,7 +447,7 @@ export function CelestialGridViewer({showGrid, set_showGrid, ups }) {
           fontFamily: 'Arial, sans-serif',
         }} id="stts" role="status" aria-live="polite" aria-atomic="true"
       />
-      <div style={{display: showGrid? 'block':'none', position:'fixed', zIndex:2, inset:0 }}>
+      <div style={{display: showGrid? 'block':'none', position:'fixed', zIndex:2, inset:0}}>
       <ListTx ups={ups} textRef={textRef}/> 
       </div>
 
