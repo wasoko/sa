@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import WebGL from 'three/addons/capabilities/WebGL.js';
+// import WebGL from 'three/addons/capabilities/WebGL.js';
+import WebGL from '../node_modules/three/examples/jsm/capabilities/WebGL.js';  // safe path
 
 import { useRef, useEffect, useState } from 'react';
 import { ListTx } from './grid';
@@ -94,8 +95,8 @@ function getRender() {
     return new THREE.WebGLRenderer({ antialias: true })
   const canvas = document.createElement('canvas')
   return new THREE.WebGLRenderer({ 
-    canvas: canvas, context: canvas.getContext( 
-    WebGL.isWebGL2Available()?'webgl2': 'webgl') as WebGLRenderingContext
+    canvas: canvas, context: canvas.getContext( // WebGL.isWebGL2Available()?'webgl2': 
+    'webgl' ) as WebGLRenderingContext
  })
 
 }
@@ -439,13 +440,13 @@ export function CelestialGridViewer({showGrid, set_showGrid, ups }) {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
-      <div ref={textRef} style={{ position: 'absolute', bottom: '122px', right: '10px',
+      <div ref={textRef} style={{ position: 'absolute', top: '55px', right: '10px',
           color: 'white',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           padding: '5px',
           fontSize: '12px',
           fontFamily: 'Arial, sans-serif',
-        }} id="stts" role="status" aria-live="polite" aria-atomic="true"
+        }} id="sttsTW" role="status" aria-live="polite" aria-atomic="true"
       />
       <div style={{display: showGrid? 'block':'none', position:'fixed', zIndex:2, inset:0}}>
       <ListTx ups={ups} textRef={textRef}/> 

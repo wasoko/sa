@@ -1,7 +1,6 @@
 @import "tailwindcss";
-@source "./**/*.{html,js,ts,jsx,tsx}"; /* Scans for classes */
-@source "../*.html";  
+@source "./src/**/*.{html,js,ts,jsx,tsx}"; /* Scans for classes */
 
-@plugin "daisyui" {
+/* @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
-}
+} */

@@ -88,6 +88,7 @@ function HighlightedText ({ txt, sts, ref, locTid, locFn }:{
             }} key={i}> {part} </span>) : (<span key={i}>{part}</span>)
       )}<a href={ref}>🔗</a></div>);
 };
+const MSG_CROSS = '🗙 (drop)'
 export function ListTx({ups, textRef}) {
   const [search, setSearch] = useState('');
   const [tidNum, set_tidNum] = useState(-1);
@@ -136,14 +137,16 @@ export function ListTx({ups, textRef}) {
   }
   function repTag(item:string, prev:string) {
     if (selectedTags.includes(item))return
-    navigate('/'+(item==='❌' ? selectedTags : selectedTags.concat(item))
+    navigate('/'+(item===MSG_CROSS ? selectedTags : selectedTags.concat(item))
       .filter(s=>s!==prev).join('/'))
   }
   // Handler for Ctrl+V (Keyboard Paste)
   function handlePaste(event: ClipboardEvent){
     const pastedText = event.clipboardData?.getData('text/plain');
     if (!pastedText) return stts('cannot read pasted text')
-    const ts = markdown2tab(pastedText).map(m=> ({type:'tab',txt:m.txt, ref:m.ref, sts:['markdown','pasted']})as idb.Tag)
+    const ts = markdown2tab(pastedText).map(m=> ({type:'tab',txt:m.txt
+      , ref:m.ref, sts:['markdown','pasted']})as idb.Tag)
+    if (chrome) ts.forEach(t=>t.sts?.unshift(chrome.instanceID.getID()))
     if (ts.length===0) return stts('no markdown [title](url) in '+pastedText.slice(0,33)+'...')
     idb.db.tags.bulkPut(ts).then(()=> stts(`${ts.length} urls saved.`))
   }
@@ -183,13 +186,13 @@ export function ListTx({ups, textRef}) {
           }} />}
         <div style={{display:'flex', flexDirection:'row', gap: '15px'}}>
           {selectedTags.map(selTag =>
-            <DragTag current={selTag} key={selTag} options={['🗙 (drop)',...ttag]}
+            <DragTag current={selTag} key={selTag} options={[MSG_CROSS,...ttag]}
              onSelect={repTag} onLeft={editTag} replace={true}/>
                 )} <DragTag current='[Related]' options={ttag} onSelect={(i, p)=> addTag(i)} />
                 <DragTag current='[Add]' options={ttag} onSelect={(i, p)=> addTag(i)} />
             </div> 
       </div>
-      <div style={{overflowX: 'hidden', flexGrow:1}}><table> {/* Custom Header Bar */}
+      <div style={{overflowX: 'hidden', }}><table> {/* Custom Header Bar */}
       <tbody>{table.getRowModel().rows.map(row => (
         <tr key={row.id}>{row.getVisibleCells().map(cell => (
           <td key={cell.id}> {flexRender(cell.column.columnDef.cell, cell.getContext())}

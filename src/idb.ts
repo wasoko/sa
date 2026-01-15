@@ -1,5 +1,6 @@
 import {Dexie} from 'dexie';
 import * as fc from './fc';
+import { countBy } from 'es-toolkit';
 
 export interface Tag { tid?: number, txt: string, ref: string
   , sts?: string[], ats?:number[] // related tags
@@ -81,7 +82,39 @@ export async function getRowsAroundTid(tid: number, n: number) {
 // Create and export a singleton instance
 export const db = new DDB(); 
 
+async function stat_tags(){
+  let str = ''
+  const dts = await db.tags.orderBy('dt').reverse().limit(11).uniqueKeys()
+  if (dts.length==0) return str
+  str += ` updated ${fc.diffDays(new Date(), dts[0]).toFixed(2)} days ago`
+  for(const dt of dts) {
+    const ts = db.tags.where('dt').equals(dt)
+    str += `\n`+`${await ts.count()}`.padStart(4,' ')+` at `+fc.fmt_mdwhm(dt) 
+    const tsa = await ts.toArray()
+    if (tsa.length===1) str += ' '+ tsa[0].type+`: `+tsa[0].txt + tsa[0].sts?.map(s=> ` #${s}`)?.join()
+    // const cnt = ts.filter(t=> t.type!=='tab')
+    str += ` max(tid)=${Math.max(...tsa.map(t=> t.tid ?? 0))}`
+    const alltags = tsa.flatMap(t=>t.sts ??[])
+    const tags = alltags.filter(t=>!t.startsWith('dev:'))
+    if (tags.length >0)
+      str += ` top tags: ${JSON.stringify( Object.fromEntries( fc.topFew(3, 
+        Object.entries( countBy(tags, x=>x)))))}`
+    if (alltags.length === tags.length) continue
+    const cntdev = countBy(alltags.filter(t=> t.startsWith('dev:')), x=> x.substring(4))
+    str += ` dev: ${JSON.stringify(cntdev)}`
+    //.reduce((acc, s)=>
+    //(acc[s] = (acc[s] || 0) +1, acc), {})
+    // if (str.length>33) return false  // to stop dexie cursor
+  }
+  return str
+}
 // utils
+export async function statStr() {
+  return (`local saved: ${await db.tags.count()} tags ${await stat_tags()}
+  ...\n${await db.stat.count()} stats max(tid)=${
+    (await db.stat.reverse().last())?.tid},  ${await db.vecs.count()} vecs max(tid=${
+      (await db.vecs.reverse().last())?.tid})`)
+}
 /** ignore identicals, split clashing by tid, ignoring exact match
  * @param ts 
  * @param dl 
@@ -104,7 +137,7 @@ export function diffTags( ts:Tag[], dl:Tag[]) {
     if (ts.some(t=> idDiff.has(t.tid))) {
       clash = ts.filter(t=> idDiff.has(t.tid))
       const idClash = new Set(clash.map(t=> t.tid))
-      newDL = newDL.filter(t=> idClash.has(t.tid))
+      newDL = newDL.filter(t=> !idClash.has(t.tid))
     }
   }
   return { newDL, clash}

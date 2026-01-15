@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Settings, Sheet, Search, GitBranch, ChevronLeftCircle, RefreshCcwDot } from 'lucide-react';
 import React from 'react';
+import { DEF_TREE } from './idb';
 
 export const HF_OR = [
   'jinaai/jina-embeddings-v2-base-zh',
@@ -19,11 +20,13 @@ export const HF_OR = [
   'sentence-transformers/distilbert-base-nli-mean-tokens'
 ];
 
-export function SideBar({tree, onChange_tree, download2merge, flipGrid, showGrid, RefTag}) {
+export function SideBar({tree, onChange_tree, onFlipSetup
+  , download2merge, showMerge, mergeDiff, flipGrid, showGrid, refreshTag}) {
   const [showSetup, setShowSetup] = useState(false);
-  const BTN_SIZE = '55px'
+  const BTN_SIZE = '33px'
   React.useEffect(()=> {
       // fc.input2options('input-tree-emb_model-HF',HF_OR);
+      onFlipSetup(showSetup)
   }, [showSetup])
   
   const handleTreeChange = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => 
@@ -32,20 +35,27 @@ export function SideBar({tree, onChange_tree, download2merge, flipGrid, showGrid
   return (
     <div style={{width:'100%'}}>
       {/* Setup Pane */}
-      {showSetup && (<div>
+      {showSetup && (<div style={{background: 'rgba(0,0,0, 0.8)', padding:22}}>
           <h3 >Settings</h3>
           {Object.entries(tree).map(([key, value]) => (
-            <div key={key}>
+            <div><div key={key} style={{flexDirection:'row',display:'flex'}}>
               <label htmlFor={`input-tree-${key}`}> [{key}] </label>
               <input id={`input-tree-${key}`}type="search"
                 value={value as string}
-                onChange={handleTreeChange(key)} />
-            </div> ))} 
+                placeholder={`${DEF_TREE[key]}`}
+                onChange={handleTreeChange(key)}
+                style={{flexGrow:1}} />
+            </div></div> ))} 
+          <pre id="sttsSync"/>
           <AsyncButton onClick={download2merge}>Download</AsyncButton>
+          <pre id="sttsDlDiff"/>
+          {showMerge && <AsyncButton onClick={mergeDiff}>☁️ Merge</AsyncButton>}
+          <pre id="sttsSaved"/>
+          <pre id="sttsTagged"/>
           </div>)} 
       <aside style={{display:'flex', overflowX:'auto'}}>
         {showSetup && <button onClick={() => setShowSetup(false)} title={"<"}><ChevronLeftCircle size={BTN_SIZE} /></button>}
-        <button title="Refresh" onClick={RefTag}><RefreshCcwDot style={{ transform: 'scaleX(-1)'}} size={BTN_SIZE} /></button> 
+        <button title="Refresh" onClick={refreshTag}><RefreshCcwDot style={{ transform: 'scaleX(-1)'}} size={BTN_SIZE} /></button> 
         <button title='Grid' className={showGrid?'selected':''} onClick={flipGrid} ><Sheet size={BTN_SIZE} /></button>
         <button title="Set" onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
         <button><Search size={BTN_SIZE} /></button>

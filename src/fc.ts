@@ -1,5 +1,7 @@
 
 import * as cbor from 'cbor-x';
+import { keyBy } from 'es-toolkit';
+import { object } from 'framer-motion/client';
 import * as pako from 'pako';
 import { useEffect, useState } from 'react';
 export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }
@@ -28,6 +30,7 @@ export function reAddCB(callback:
   chrome.runtime.onMessage.addListener(callback)
 }
 export const sttsCB =  (message:any, _s?:any, _sr?:any) => {
+  if (typeof document === 'undefined') return
   const dd = document.getElementById(message.type)
   if (dd !==null && message.type.startsWith('stts') )
     dd.textContent = message.stts
@@ -213,7 +216,7 @@ export function logRet(...data: any[]) {
   console.log(data)
   return data.join('')
 }
-export  function sideLog(_stuff:unknown, log:boolean, ...data:any[]) {
+export  function sideLog(_stuff:unknown, log:boolean=true, ...data:any[]) {
   if (log) console.log(data)
   return _stuff
 }
@@ -251,11 +254,26 @@ export function topFew<T>(k: number, arr: T[], compare: (a: T, b: T) => number =
   }
   return result;
 }
-export const fmt_md = new Intl.DateTimeFormat('en-US', {
+const hashtagRegex = /\B#[\p{L}\p{N}_]+/gu;
+const trailingHashtagRegex = /(?:\s*#[\p{L}\p{N}_]+)+$/gu;
+export const trimTrailingHashtags=(text:string) =>text.replace( trailingHashtagRegex,"").trimEnd()
+
+export const diffDays = (d1, d2) => (d1-d2)/(1000 *60*60 *24)
+export function fmt_mdwhm(dt) { 
+  const p=fmt2parts(dt) 
+  return`${p.year} ${p.month.padStart(2,' ')}/${p.day} ${p.weekday} ${p.hour}:${p.minute}`
+}
+export function fmt2parts(dt) { return Object.fromEntries( new Intl.DateTimeFormat('en-US', {
     month: 'numeric', // MM
     day: '2-digit',   // dd
-    // weekday: 'short'  // ddd
-  }); // { hour: '2-digit', minute: '2-digit', hour12: false } //24hr    // style: 'percent',   // new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) // #,##0.##
+  year: 'numeric',
+    weekday: 'short',  // ddd
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false
+  }).formatToParts(dt).map(({type,value})=> [type,value]))
+}; // { // new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) // #,##0.##
+export const fmt_md = new Intl.DateTimeFormat('en-US', { month: 'numeric', day: '2-digit', })
 // //unused
 // function setKVjoin(rec: Record<string,string>, arg1: string, arg2: string) {
 //     rec[arg1] = arg2;

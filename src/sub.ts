@@ -1,11 +1,11 @@
 import {Rt} from './types'
+import { stts } from './fc';
+import * as fc from './fc';
 import {Tag, db} from './idb'
 import * as sb from '@supabase/supabase-js';
-
-/**
-* Subscribes to real-time changes in the 'journal_entries' table and syncs to Dexie.
-* Also performs initial data fetch.
-*/
+/** Subscribes to real-time changes in the 'journal_entries' table and syncs to Dexie.
+ * Also performs initial data fetch.
+ */
 export async function subRt(sbc: sb.SupabaseClient) {
   console.log("Setting up Supabase Realtime subscription...");
   // 1. Initial Data Load
@@ -59,8 +59,7 @@ export async function subRt(sbc: sb.SupabaseClient) {
   ).subscribe()
   return channel
 }
-/**
-* Upserts a Tag object into the Supabase journal_entries table.
+/** Upserts a Tag object into the Supabase journal_entries table.
 * @param tagData The Tag object from Dexie to sync.
 */
 export async function upsRt(ts: Tag[], sbc: sb.SupabaseClient, next_tid:number): Promise<void> {
@@ -96,6 +95,61 @@ export async function upsRt(ts: Tag[], sbc: sb.SupabaseClient, next_tid:number):
     
     // Optional: Update the local Dexie entry with the definitive UUID returned by Supabase
     // await db.tags.update(tagData.tid, { entry_id: data[0].entry_id });
+}
+export let sbc:sb.SupabaseClient |null = null
+export function set_sbc(url, anon) {
+  try {
+    if (sbc) {
+      // Explicitly shut down the Realtime WebSocket to free up locks
+      sbc.realtime.disconnect(); 
+      // Remove all listeners to prevent memory leaks
+      sbc.removeAllChannels();
+      sbc = null;
+    }
+    const tmp_sbc = sb.createClient(url, anon, {auth:{debug:false, persistSession:true,}})
+    if (tmp_sbc) last_sync_desc(tmp_sbc).then(res=> {
+      if (res.ok)
+        stts(res.error ?? 'cred test error', "Sync")
+      sbc = tmp_sbc
+  }) } catch(e) {
+    stts(e.message, "Sync")
+    console.error(`error: `,e)
   }
-  
+}
+
+// export function useSupabaseInit (url, anon) {
+//   return useQuery({ queryKey: ['supabase', url, anon], // Only re-init if these specific values change
+//     queryFn: async () => {
+//       const client = sb.createClient(url, anon)
+//       const { ok, result } = await last_sync_desc(client);
+//       if (!ok) throw new Error(`Health check failed: ${result?.error?.message}`);      
+//       return client
+//     },
+//     // Prevent the client from being "garbage collected" or marked as stale
+//     staleTime: Infinity, 
+//     gcTime: Infinity,
+//     enabled: !!(url && anon), // Stop the query from running if credentials aren't fully typed yet
+//   });
+// };
+
+export async function last_sync(sbc:sb.SupabaseClient) {
+  const st = performance.now()
+  const {ok, name} = await last_sync_desc(sbc)
+  const res = fc.dl(sbc.storage.from('bb'), name)
+  fc.nowWarn(st, 'sync', 'dl last')
+  return res
+}
+export async function last_sync_desc(sbc:sb.SupabaseClient) {
+  const st = performance.now()
+  const result = await sbc.storage.from('bb').list('', { limit: 11, sortBy: { column: 'created_at', order: 'desc' } });    
+  if (result.error) 
+    return {ok:false, error: stts(`err [listing buckets]  ${result.error.name}: ${result.error.message}`), result}
+  if (!result.data.length)
+    return {ok:false, error: stts(`err no bucket (init upload missing)`), result}
+  const matched = result.data?.filter((o: { name: string; })=> o.name.startsWith('tags'))
+  if (!matched.length)
+    return {ok:false, error: stts(`err no matched sync image found`), result}  // already return false after async wrapper
+  fc.nowWarn(st, 'sync', 'list last')
+  return {ok: true, name: matched[0].name, updated_at: matched[0].updated_at, result}
+}
   // ref edge://sync-internals/ https://github.com/kitt-browser/chrome-sync/blob/master/protocol/sync_enums.proto
