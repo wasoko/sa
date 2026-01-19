@@ -1,0 +1,17 @@
+<!-- public/auth-callback.html -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    // const { createClient } = supabase;
+  const sbc = supabase.createClient('https://qhumewjpkzxaltwefqch.supabase.co', 'sb_publishable_5Stcng45Jofw5Wv3FA4GnQ_BivUYQ_K');
+
+  sbc.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN') {
+      // 1. Get the 'next' path from the URL query params
+      const urlParams = new URLSearchParams(window.location.search);
+      const nextPath = urlParams.get('next') || '#/'; // Default to home
+
+      // 2. Redirect back to the original react-router hash route
+      window.location.href = window.location.origin + '/' + nextPath;
+    }
+  });
+</script>

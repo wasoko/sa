@@ -89,7 +89,7 @@ function HighlightedText ({ txt, sts, ref, locTid, locFn }:{
       )}<a href={ref}>🔗</a></div>);
 };
 const MSG_CROSS = '🗙 (drop)'
-export function ListTx({ups, textRef}) {
+export function ListTx({ups}) {
   const [search, setSearch] = useState('');
   const [tidNum, set_tidNum] = useState(-1);
   const [showEditTag, set_showEditTag] = useState(false)

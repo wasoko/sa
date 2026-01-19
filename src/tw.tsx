@@ -448,7 +448,8 @@ export function CelestialGridViewer({showGrid, set_showGrid, ups }) {
           fontFamily: 'Arial, sans-serif',
         }} id="sttsTW" role="status" aria-live="polite" aria-atomic="true"
       />
-      <div style={{display: showGrid? 'block':'none', position:'fixed', zIndex:2, inset:0}}>
+      <div style={{display: showGrid? 'block':'none', position:'fixed', zIndex:2
+          , top: 0, right: 0, bottom: 0, left: 0 }}>
       <ListTx ups={ups} textRef={textRef}/> 
       </div>
 

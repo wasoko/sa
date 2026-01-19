@@ -21,7 +21,8 @@ export const HF_OR = [
 ];
 
 export function SideBar({tree, onChange_tree, onFlipSetup
-  , download2merge, showMerge, mergeDiff, flipGrid, showGrid, refreshTag}) {
+  , download2merge, showMerge, mergeDiff, signinfo, signinGoogle, signinWeibo,signout
+  , upSnap, flipGrid, showGrid, refreshTag}) {
   const [showSetup, setShowSetup] = useState(false);
   const BTN_SIZE = '33px'
   React.useEffect(()=> {
@@ -37,20 +38,24 @@ export function SideBar({tree, onChange_tree, onFlipSetup
       {/* Setup Pane */}
       {showSetup && (<div style={{background: 'rgba(0,0,0, 0.8)', padding:22}}>
           <h3 >Settings</h3>
+          {signinfo===''? <AsyncButton onClick={signinGoogle}>Google</AsyncButton>
+          : <div>{signinfo} <AsyncButton onClick={signout}>Sign-out</AsyncButton></div> }
           {Object.entries(tree).map(([key, value]) => (
-            <div><div key={key} style={{flexDirection:'row',display:'flex'}}>
+            <div key={key} style={{flexDirection:'row',display:'flex'}}>
               <label htmlFor={`input-tree-${key}`}> [{key}] </label>
               <input id={`input-tree-${key}`}type="search"
                 value={value as string}
                 placeholder={`${DEF_TREE[key]}`}
                 onChange={handleTreeChange(key)}
                 style={{flexGrow:1}} />
-            </div></div> ))} 
+            </div> ))} 
+          <pre id="sttsSignin"/>
           <pre id="sttsSync"/>
-          <AsyncButton onClick={download2merge}>Download</AsyncButton>
+          <AsyncButton key="dl" onClick={download2merge}>Download</AsyncButton>
           <pre id="sttsDlDiff"/>
-          {showMerge && <AsyncButton onClick={mergeDiff}>☁️ Merge</AsyncButton>}
+          {showMerge && <AsyncButton key="merge" onClick={mergeDiff}>☁️ Merge</AsyncButton>}
           <pre id="sttsSaved"/>
+          <AsyncButton key="merge" onClick={upSnap}>☁️ Upload</AsyncButton>
           <pre id="sttsTagged"/>
           </div>)} 
       <aside style={{display:'flex', overflowX:'auto'}}>

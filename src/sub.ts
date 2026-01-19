@@ -64,6 +64,9 @@ export async function subRt(sbc: sb.SupabaseClient) {
 */
 export async function upsRt(ts: Tag[], sbc: sb.SupabaseClient, next_tid:number): Promise<void> {
   
+  const { data: { user } } = await sbc.auth.getUser()
+  if (!user) return console.error("Not logged in")
+
   // Map the local Tag interface back to the Supabase schema format
   const supabasePayload = ts.map(tagData=>({
     // We might not have the UUID (entry_id) locally yet if it's a brand new entry.
@@ -76,6 +79,7 @@ export async function upsRt(ts: Tag[], sbc: sb.SupabaseClient, next_tid:number):
     sts: tagData.sts || null,
     ats: tagData.ats || null,
     tid: tagData.tid || null,
+    user_id: user.id
   }));
   
   // // Use .upsert() which acts as both INSERT and UPDATE depending on the primary key match
@@ -96,27 +100,33 @@ export async function upsRt(ts: Tag[], sbc: sb.SupabaseClient, next_tid:number):
     // Optional: Update the local Dexie entry with the definitive UUID returned by Supabase
     // await db.tags.update(tagData.tid, { entry_id: data[0].entry_id });
 }
-export let sbc:sb.SupabaseClient |null = null
-export function set_sbc(url, anon) {
-  try {
-    if (sbc) {
-      // Explicitly shut down the Realtime WebSocket to free up locks
-      sbc.realtime.disconnect(); 
-      // Remove all listeners to prevent memory leaks
-      sbc.removeAllChannels();
-      sbc = null;
-    }
-    const tmp_sbc = sb.createClient(url, anon, {auth:{debug:false, persistSession:true,}})
+const sb_options = {auth:{
+    persistSession: true,    // Enabled by default; ensures storage use
+    autoRefreshToken: true,  // Automatically uses refresh tokens
+    detectSessionInUrl: true, // Critical for picking up Google OAuth tokens
+    debug:false,
+}}
+export let sbg:sb.SupabaseClient = sb.createClient('https://qhumewjpkzxaltwefqch.supabase.co', 'sb_publishable_5Stcng45Jofw5Wv3FA4GnQ_BivUYQ_K'
+  , sb_options);
+export function set_sbg(server, pub_key, cb) {
+  try {const tmp_sbc = sb.createClient(server, pub_key, sb_options)
     if (tmp_sbc) last_sync_desc(tmp_sbc).then(res=> {
       if (res.ok)
-        stts(res.error ?? 'cred test error', "Sync")
-      sbc = tmp_sbc
+        stts('cred test done', "Sync")
+      else
+        return fc.sideLog('cred test error: ',res.result.error)
+    if (sbg) {
+      sbg.realtime.disconnect(); 
+      sbg.removeAllChannels();
+    }
+    sbg = tmp_sbc
+    subRt(sbg)
+    cb(sbg)
   }) } catch(e) {
     stts(e.message, "Sync")
     console.error(`error: `,e)
   }
 }
-
 // export function useSupabaseInit (url, anon) {
 //   return useQuery({ queryKey: ['supabase', url, anon], // Only re-init if these specific values change
 //     queryFn: async () => {
@@ -135,17 +145,21 @@ export function set_sbc(url, anon) {
 export async function last_sync(sbc:sb.SupabaseClient) {
   const st = performance.now()
   const {ok, name} = await last_sync_desc(sbc)
+  // if (!ok) return 
   const res = fc.dl(sbc.storage.from('bb'), name)
   fc.nowWarn(st, 'sync', 'dl last')
   return res
 }
 export async function last_sync_desc(sbc:sb.SupabaseClient) {
   const st = performance.now()
-  const result = await sbc.storage.from('bb').list('', { limit: 11, sortBy: { column: 'created_at', order: 'desc' } });    
+  const { data: { user } } = await sbc.auth.getUser()
+  if (!user) return {ok:false, error: stts("err Not logged in"), result:user}
+  const result = await sbc.storage.from('bb').list(`${user.id}`, { limit: 11, sortBy: { column: 'created_at', order: 'desc' } });    
   if (result.error) 
     return {ok:false, error: stts(`err [listing buckets]  ${result.error.name}: ${result.error.message}`), result}
   if (!result.data.length)
-    return {ok:false, error: stts(`err no bucket (init upload missing)`), result}
+    return {ok:false, error: stts(`No snapshot found yet.`), result}
+
   const matched = result.data?.filter((o: { name: string; })=> o.name.startsWith('tags'))
   if (!matched.length)
     return {ok:false, error: stts(`err no matched sync image found`), result}  // already return false after async wrapper

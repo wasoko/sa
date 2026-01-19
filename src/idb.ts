@@ -20,6 +20,8 @@ export interface Refs {
 }
 const modelEnum = {'Xenova/bge-small-zh-v1.5':15}
 export const DEF_TREE:{[key:string]: unknown} = { "cred": "https://PROJECTID.supabase.co|anon"
+  , "server": 'https://qhumewjpkzxaltwefqch.supabase.co'
+  , "pub_key": 'sb_publishable_5Stcng45Jofw5Wv3FA4GnQ_BivUYQ_K'
   // , "emb_model-HF":HF_OR[0]
 }
 export async function getTree(key: string){
@@ -125,20 +127,20 @@ export function diffTags( ts:Tag[], dl:Tag[]) {
   let clash: Tag[] = []
   let newDL = dl  // default save all downloaded
   if (ts.length>0) {
-    function tag2str(t:Tag){ `${t.ref}|${t.txt}|${t.type}|${t.sts}` } // ignore |${t.ats} 
+    const tag2str=(t:Tag) => `${t.ref}|${t.txt}|${t.type}|${t.sts}` // for now ignore |${t.ats} 
     const tsSet = new Set(ts.map(tag2str))
-    newDL = dl.filter(rt=> tsSet.has(tag2str(rt)))
+    newDL = dl.filter(rt=> ! tsSet.has(tag2str(rt)))
     if (newDL.length >33)
       console.log(`${newDL.length} diff in idb`)
     else
       newDL.forEach(d=> console.log(`diff:[${d.txt}]\n  vs:(${d.ref})`))
     // upsert do not 
-    const idDiff = new Set(newDL.map(t=> t.tid))
-    if (ts.some(t=> idDiff.has(t.tid))) {
-      clash = ts.filter(t=> idDiff.has(t.tid))
+    const idSet = new Set(ts.map(t=> t.tid))
+    if (newDL.some(t=> idSet.has(t.tid))) {
+      clash = newDL.filter(t=> idSet.has(t.tid))
       const idClash = new Set(clash.map(t=> t.tid))
-      newDL = newDL.filter(t=> !idClash.has(t.tid))
+      newDL = newDL.filter(t=> ! idClash.has(t.tid))
     }
   }
-  return { newDL, clash}
+  return { newDL, clash, ts}
 }

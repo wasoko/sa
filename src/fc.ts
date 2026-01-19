@@ -216,11 +216,11 @@ export function logRet(...data: any[]) {
   console.log(data)
   return data.join('')
 }
-export  function sideLog(_stuff:unknown, log:boolean=true, ...data:any[]) {
-  if (log) console.log(data)
+export  function sideLog(_stuff:unknown, ...data:any[]) {
+  console.log(_stuff, data)
   return _stuff
 }
-export  function sideDo(stuff:unknown, cond:boolean, cb:()=>void) {
+export  function ifDo(stuff:unknown, cond:boolean, cb:()=>void) {
   if (cond) cb()
   return stuff
 }
@@ -259,9 +259,13 @@ const trailingHashtagRegex = /(?:\s*#[\p{L}\p{N}_]+)+$/gu;
 export const trimTrailingHashtags=(text:string) =>text.replace( trailingHashtagRegex,"").trimEnd()
 
 export const diffDays = (d1, d2) => (d1-d2)/(1000 *60*60 *24)
+export function fmt_ym(dt) { 
+  const p=fmt2parts(dt) 
+  return`${p.year}-${p.month.padStart(2,'0')}`
+}
 export function fmt_mdwhm(dt) { 
   const p=fmt2parts(dt) 
-  return`${p.year} ${p.month.padStart(2,' ')}/${p.day} ${p.weekday} ${p.hour}:${p.minute}`
+  return`${p.year} ${p.month.padStart(2,' ')}/${p.day.padStart(2,'0')} ${p.weekday} ${p.hour}:${p.minute}`
 }
 export function fmt2parts(dt) { return Object.fromEntries( new Intl.DateTimeFormat('en-US', {
     month: 'numeric', // MM
