@@ -66,7 +66,6 @@ export function input2options(id:string, options:string[]) {
     input.setAttribute('list', datalist.id);
   }
 }
-
 export function markdown2tab(markdown: string) {
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g; // [title](url)
   const items = [];

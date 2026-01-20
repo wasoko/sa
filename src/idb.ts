@@ -5,9 +5,7 @@ import { countBy } from 'es-toolkit';
 export interface Tag { tid?: number, txt: string, ref: string
   , sts?: string[], ats?:number[] // related tags
   , dt:Date, type: string } // dt=latest seen b4 save-tags , 'bookmark' | 'history' | 'tab' | 'tag'
-
 export const eqTags = (r1: Tag, r2: Tag) => r1.ref === r2.ref && r1.txt === r2.txt && r1.type== r2.type
-
 export interface Refs {
 
   id?: number;
@@ -19,23 +17,15 @@ export interface Refs {
   type: 'bookmark' | 'history' | 'tab' | 'tag';
 }
 const modelEnum = {'Xenova/bge-small-zh-v1.5':15}
-export const DEF_TREE:{[key:string]: unknown} = { "cred": "https://PROJECTID.supabase.co|anon"
-  , "server": 'https://qhumewjpkzxaltwefqch.supabase.co'
-  , "pub_key": 'sb_publishable_5Stcng45Jofw5Wv3FA4GnQ_BivUYQ_K'
+export const DEF_TREE:{[key:string]: unknown} = { //"cred": "https://PROJECTID.supabase.co|anon"
+  "server": 'https://qhumewjpkzxaltwefqch.supabase.co',
+  "pub_key": 'sb_publishable_5Stcng45Jofw5Wv3FA4GnQ_BivUYQ_K',
   // , "emb_model-HF":HF_OR[0]
 }
-export async function getTree(key: string){
-  // (Dexie as any).debug = true 
-  const row = await db.tree.get(key);
-  return row ? row.value : DEF_TREE[key];
-}
 export async function binPut(key:string, bin: any) {
-  // try{
   db.bins.put({ key, rec: { date: new Date().toLocaleString('zh-cn',{hour12:false}) }
       , bin: fc.encZip(bin) });
-  // }catch(ex) {}
 }
-
 export class DDB extends Dexie {
   tree!: Dexie.Table<{ key: string, value: unknown }>;
   tags!: Dexie.Table<Tag>;
@@ -110,7 +100,6 @@ async function stat_tags(){
   }
   return str
 }
-// utils
 export async function statStr() {
   return (`local saved: ${await db.tags.count()} tags ${await stat_tags()}
   ...\n${await db.stat.count()} stats max(tid)=${

@@ -114,7 +114,7 @@ export function set_sbg(server, pub_key, cb) {
       if (res.ok)
         stts('cred test done', "Sync")
       else
-        return fc.sideLog('cred test error: ',res.result.error)
+        return fc.sideLog('cred test error: ',res)
     if (sbg) {
       sbg.realtime.disconnect(); 
       sbg.removeAllChannels();

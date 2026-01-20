@@ -64,7 +64,8 @@ function RootFC() {
     ;
     (async()=> {
       const treeData = await idb.db.tree.toArray()
-      setTree({...idb.DEF_TREE,...Object.fromEntries(treeData.map(i => [i.key, i.value]))});
+      setTree({...idb.DEF_TREE,...Object.fromEntries(treeData.filter(i=> 
+        i.key in idb.DEF_TREE).map(i => [i.key, i.value]))});
       
       if(chrome.runtime) fc.reAddCB(fc.sttsCB)
       const estimate = await navigator.storage.estimate();
@@ -182,7 +183,7 @@ function RootFC() {
     flipGrid={()=>set_showGrid(!showGrid) } showGrid={showGrid}/> 
     <div id="stts" style={{ position: 'absolute', bottom: '55px', right: '10px',}}></div>
     </div>
-    <div style={{position:'fixed', inset:0}}>
+    <div style={{position:'fixed',   top: 0, right: 0, bottom: 0, left: 0 }}>
     <tw.CelestialGridViewer showGrid={showGrid} set_showGrid={set_showGrid} ups={ups} /> 
     </div>
     </div>)
