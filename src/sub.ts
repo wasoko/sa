@@ -1,12 +1,13 @@
 import {Rt} from './types'
 import { stts } from './fc';
 import * as fc from './fc';
-import {Tag, db} from './idb'
+import {DEF_TREE, Tag, db} from './idb'
 import * as sb from '@supabase/supabase-js';
 /** Subscribes to real-time changes in the 'journal_entries' table and syncs to Dexie.
  * Also performs initial data fetch.
  */
 export async function subRt(sbc: sb.SupabaseClient) {
+  sbg.removeAllChannels()
   console.log("Setting up Supabase Realtime subscription...");
   // 1. Initial Data Load
   // Fetch today's data initially to populate Dexie before listening for live changes
@@ -100,33 +101,92 @@ export async function upsRt(ts: Tag[], sbc: sb.SupabaseClient, next_tid:number):
     // Optional: Update the local Dexie entry with the definitive UUID returned by Supabase
     // await db.tags.update(tagData.tid, { entry_id: data[0].entry_id });
 }
-const sb_options = {auth:{
-    persistSession: true,    // Enabled by default; ensures storage use
-    autoRefreshToken: true,  // Automatically uses refresh tokens
-    detectSessionInUrl: true, // Critical for picking up Google OAuth tokens
+
+const isExt = typeof chrome !== 'undefined' && chrome.storage;
+const storage = isExt? chrome.storage.sync || chrome.storage.local : null;
+const tokenStorageAdapter = { getItem: async (key: string) => {
+    const result = await storage.get(key);
+    return result[key] || null;
+  },
+  setItem: async (key: string, value: string) => await storage?.set({ [key]: value }),
+  removeItem: async (key: string) => await storage?.remove(key),
+};
+const sb_options = {auth:{    
+    autoRefreshToken: !isExt,// ??    // For Chrome extensions, disable auto-refresh to avoid redirect issues
+    persistSession: true,
+    storage: isExt? tokenStorageAdapter : undefined,
+    detectSessionInUrl: false, // Prevent chromium-extension:// URL issues
     debug:false,
 }}
-export let sbg:sb.SupabaseClient = sb.createClient('https://qhumewjpkzxaltwefqch.supabase.co', 'sb_publishable_5Stcng45Jofw5Wv3FA4GnQ_BivUYQ_K'
+const SB_AUTH_NEXT = 'auth_next_path'
+export let sbg:sb.SupabaseClient = sb.createClient(DEF_TREE['server'], DEF_TREE['pub_key']
   , sb_options);
-export function set_sbg(server, pub_key, cb) {
-  try {const tmp_sbc = sb.createClient(server, pub_key, sb_options)
-    if (tmp_sbc) last_sync_desc(tmp_sbc).then(res=> {
-      if (res.ok)
-        stts('cred test done', "Sync")
-      else
-        return fc.sideLog('cred test error: ',res)
+let sess: sb.Session |null = null
+let user: sb.User |null = null
+sbg.auth.getSession().then(({ data: { session } }) => {
+  sess = session;
+  user = session?.user ?? null;
+});
+sbg.auth.onAuthStateChange((event, session) => {
+  sess = session;
+  user = session?.user ?? null;
+  if (event==='SIGNED_IN' && session) subRt(sbg)
+  if (event==='SIGNED_OUT') sbg.removeAllChannels()
+});
+
+export async function signinGoogle() {
+  const nextPath = window.location
+  if (!isExt) return sbg.auth.signInWithOAuth({ provider: 'google' 
+    , options:{redirectTo: nextPath.href
+          // , options: {redirectTo: `${window.location.origin}/auth-callback.html?next=${encodeURIComponent(nextPath)}`
+        }})
+  const { data, error } = await sbg.auth.signInWithOAuth({
+    provider: 'google', options: {
+      redirectTo: chrome.identity.getRedirectURL(),
+      skipBrowserRedirect: true // Returns the URL instead of redirecting
+    } });
+  // if (chrome.runtime.lastError || !responseUrl) {
+  if (error) return fc.sideLog('err signin Google: ', error)
+  chrome.identity.launchWebAuthFlow({ url: data.url,
+    interactive: true }, async (callbackUrl) => {
+      if (callbackUrl) {
+        // const url = new URL(callbackUrl);
+        const params = new URLSearchParams(new URL(callbackUrl).hash.substring(1));
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        if (!access_token || !refresh_token) return fc.sideLog('err token missing', params)
+
+        // const code = url.searchParams.get('code') || url.hash.split('access_token=')[1]?.split('&')[0];
+        // const res = await sbg.auth.exchangeCodeForSession(code)
+        const res = await sbg.auth.setSession({access_token, refresh_token});
+        // console.info('',code)
+        sess = res.data.session
+        user = res.data.user
+            window.history.replaceState(null, '', nextPath.href);
+        // window.location.hash = nextPath.replace(/^#/, '')
+        // chrome.storage.local.set({SB_TOKEN: res.data})
+    }
+  })
+}
+export function set_sbg(server, pub_key) {
+  // try {
+    const tmp_sbc = sb.createClient(server, pub_key, sb_options)
+    // if (tmp_sbc) last_sync_desc(tmp_sbc).then(res=> {
+    //   if (res.ok) stts('cred test done', "Sync")
+    //   else return fc.sideLog('cred test error: ',res)
     if (sbg) {
       sbg.realtime.disconnect(); 
       sbg.removeAllChannels();
+      sess = null
+      user = null
     }
     sbg = tmp_sbc
-    subRt(sbg)
-    cb(sbg)
-  }) } catch(e) {
-    stts(e.message, "Sync")
-    console.error(`error: `,e)
-  }
+  // }) } catch(e) {
+  //   stts(e.message, "Sync")
+  //   console.error(`error: `,e)
+  // }
 }
+
 // export function useSupabaseInit (url, anon) {
 //   return useQuery({ queryKey: ['supabase', url, anon], // Only re-init if these specific values change
 //     queryFn: async () => {

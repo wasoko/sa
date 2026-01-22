@@ -215,8 +215,8 @@ export function logRet(...data: any[]) {
   console.log(data)
   return data.join('')
 }
-export  function sideLog(_stuff:unknown, ...data:any[]) {
-  console.log(_stuff, data)
+export  function sideLog(msg:string, _stuff:unknown, ...data:any[]) {
+  console.log(msg, _stuff, data)
   return _stuff
 }
 export  function ifDo(stuff:unknown, cond:boolean, cb:()=>void) {

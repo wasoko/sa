@@ -90,11 +90,6 @@ function RootFC() {
     })
     return()=> active=false
   }, [tree.server, tree.pub_key])
-  async function signinGoogle() {
-    sbg.auth.signInWithOAuth({ provider: 'google' 
-      , options: {redirectTo: `${window.location.origin}/auth-callback.html?next=${encodeURIComponent(window.location.hash)}`
-    }})
-  }
   async function signinWeibo() {
     
   }
@@ -178,7 +173,7 @@ function RootFC() {
     <div style={{position:'fixed', width:'100%', zIndex:1, display: 'flex', flexDirection: 'row', left:0, bottom:0, }}>
     <SideBar tree={tree} onChange_tree={onChange_tree} onFlipSetup={onFlipSetup} 
     download2merge={dl2diff} showMerge={showMerge} mergeDiff={mergeDiff} refreshTag={refreshTag}
-    signinfo={signinfo} signinGoogle={signinGoogle} signinWeibo={signinWeibo} signout={signout}
+    signinfo={signinfo} signinGoogle={sub.signinGoogle} signinWeibo={signinWeibo} signout={signout}
     upSnap={upSnap}
     flipGrid={()=>set_showGrid(!showGrid) } showGrid={showGrid}/> 
     <div id="stts" style={{ position: 'absolute', bottom: '55px', right: '10px',}}></div>
