@@ -7,7 +7,8 @@ import * as sb from '@supabase/supabase-js';
  * Also performs initial data fetch.
  */
 export async function subRt(sbc: sb.SupabaseClient) {
-  sbg.removeAllChannels()
+  if (sub_user=== user?.id || !user?.id) return
+  sub_user = user?.id
   console.log("Setting up Supabase Realtime subscription...");
   // 1. Initial Data Load
   // Fetch today's data initially to populate Dexie before listening for live changes
@@ -64,7 +65,6 @@ export async function subRt(sbc: sb.SupabaseClient) {
 * @param tagData The Tag object from Dexie to sync.
 */
 export async function upsRt(ts: Tag[], sbc: sb.SupabaseClient, next_tid:number): Promise<void> {
-  
   const { data: { user } } = await sbc.auth.getUser()
   if (!user) return console.error("Not logged in")
 
@@ -113,9 +113,9 @@ const tokenStorageAdapter = { getItem: async (key: string) => {
 };
 const sb_options = {auth:{    
     autoRefreshToken: !isExt,// ??    // For Chrome extensions, disable auto-refresh to avoid redirect issues
+    detectSessionInUrl: !isExt, // Prevent chromium-extension:// URL issues
     persistSession: true,
     storage: isExt? tokenStorageAdapter : undefined,
-    detectSessionInUrl: false, // Prevent chromium-extension:// URL issues
     debug:false,
 }}
 const SB_AUTH_NEXT = 'auth_next_path'
@@ -123,6 +123,7 @@ export let sbg:sb.SupabaseClient = sb.createClient(DEF_TREE['server'], DEF_TREE[
   , sb_options);
 let sess: sb.Session |null = null
 let user: sb.User |null = null
+let sub_user = ''
 sbg.auth.getSession().then(({ data: { session } }) => {
   sess = session;
   user = session?.user ?? null;
@@ -131,14 +132,14 @@ sbg.auth.onAuthStateChange((event, session) => {
   sess = session;
   user = session?.user ?? null;
   if (event==='SIGNED_IN' && session) subRt(sbg)
-  if (event==='SIGNED_OUT') sbg.removeAllChannels()
+  if (event==='SIGNED_OUT') fc.sideLog('SIGNED_OUT',sbg.removeAllChannels())
 });
 
 export async function signinGoogle() {
   const nextPath = window.location
   if (!isExt) return sbg.auth.signInWithOAuth({ provider: 'google' 
     , options:{redirectTo: nextPath.href
-          // , options: {redirectTo: `${window.location.origin}/auth-callback.html?next=${encodeURIComponent(nextPath)}`
+          // , options: {redirectTo: `${window.location.origin}/auth-callback.html?next=${encodeURIComponent(nextPath.hash)}`
         }})
   const { data, error } = await sbg.auth.signInWithOAuth({
     provider: 'google', options: {
@@ -214,7 +215,8 @@ export async function last_sync_desc(sbc:sb.SupabaseClient) {
   const st = performance.now()
   const { data: { user } } = await sbc.auth.getUser()
   if (!user) return {ok:false, error: stts("err Not logged in"), result:user}
-  const result = await sbc.storage.from('bb').list(`${user.id}`, { limit: 11, sortBy: { column: 'created_at', order: 'desc' } });    
+  const path = `${user.id}`
+  const result = await sbc.storage.from('bb').list(path, { limit: 11, sortBy: { column: 'created_at', order: 'desc' } });    
   if (result.error) 
     return {ok:false, error: stts(`err [listing buckets]  ${result.error.name}: ${result.error.message}`), result}
   if (!result.data.length)
@@ -224,6 +226,6 @@ export async function last_sync_desc(sbc:sb.SupabaseClient) {
   if (!matched.length)
     return {ok:false, error: stts(`err no matched sync image found`), result}  // already return false after async wrapper
   fc.nowWarn(st, 'sync', 'list last')
-  return {ok: true, name: matched[0].name, updated_at: matched[0].updated_at, result}
+  return {ok: true, name: path+'/'+matched[0].name, updated_at: matched[0].updated_at, result}
 }
   // ref edge://sync-internals/ https://github.com/kitt-browser/chrome-sync/blob/master/protocol/sync_enums.proto

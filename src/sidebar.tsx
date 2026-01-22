@@ -36,7 +36,7 @@ export function SideBar({tree, onChange_tree, onFlipSetup
   return (
     <div style={{width:'100%'}}>
       {/* Setup Pane */}
-      {showSetup && (<div style={{background: 'rgba(0,0,0, 0.8)', padding:22}}>
+      {showSetup && (<div style={{background: 'rgba(0,0,0, 0.8)', padding:22, overflow:'auto',maxHeight:'77vh'}}>
           <h3 >Settings</h3>
           {signinfo===''? <AsyncButton onClick={signinGoogle}>Google</AsyncButton>
           : <div>{signinfo} <AsyncButton onClick={signout}>Sign-out</AsyncButton></div> }
@@ -55,7 +55,7 @@ export function SideBar({tree, onChange_tree, onFlipSetup
           <pre id="sttsDlDiff"/>
           {showMerge && <AsyncButton key="merge" onClick={mergeDiff}>☁️ Merge</AsyncButton>}
           <pre id="sttsSaved"/>
-          <AsyncButton key="merge" onClick={upSnap}>☁️ Upload</AsyncButton>
+          <AsyncButton key="upSnap" onClick={upSnap}>☁️ Upload</AsyncButton>
           <pre id="sttsTagged"/>
           </div>)} 
       <aside style={{display:'flex', overflowX:'auto'}}>

@@ -192,7 +192,7 @@ export function ListTx({ups}) {
                 <DragTag current='[Add]' options={ttag} onSelect={(i, p)=> addTag(i)} />
             </div> 
       </div>
-      <div style={{overflowX: 'hidden', }}><table> {/* Custom Header Bar */}
+      <div style={{overflowX: 'hidden', }}><table>
       <tbody>{table.getRowModel().rows.map(row => (
         <tr key={row.id}>{row.getVisibleCells().map(cell => (
           <td key={cell.id}> {flexRender(cell.column.columnDef.cell, cell.getContext())}

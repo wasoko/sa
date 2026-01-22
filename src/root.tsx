@@ -54,30 +54,20 @@ function RootFC() {
   }
   React.useEffect(() => {
     let active = true; // Flag to handle double-triggers and async races
-    const { data: { subscription } } = sbg.auth.onAuthStateChange(async (event, session) => {
-      if (!active) return; // Ignore if component unmounted (Strict Mode remount)
-      if (event === 'SIGNED_IN' && session) {
-        set_signinfo(stts(session.user.email ?? 'id: ' + session.user.id));
-      } else if (event === 'SIGNED_OUT') 
-        sbg.removeAllChannels();
-    })
-    ;
     (async()=> {
       const treeData = await idb.db.tree.toArray()
       setTree({...idb.DEF_TREE,...Object.fromEntries(treeData.filter(i=> 
         i.key in idb.DEF_TREE).map(i => [i.key, i.value]))});
-      
       if(chrome.runtime) fc.reAddCB(fc.sttsCB)
-      const estimate = await navigator.storage.estimate();
-      console.log(`Total IndexedDB usage: ${estimate.usage?.toLocaleString()} bytes out of quota ${estimate.quota?.toLocaleString()}`);
-
       const { data: { session } } = await sbg.auth.getSession();
       if(active && session) set_signinfo(session.user.email ?? 'id: '+session.user.id)
+      if (navigator.storage)
+        navigator.storage.estimate().then( estimate=>
+          console.log(`Total IndexedDB usage: ${estimate.usage?.toLocaleString()} byte`
+          + `out of quota ${estimate.quota?.toLocaleString()}`))
     }) ()
     return ()=> {
       active = false; // Prevents async state updates on unmounted component
-      sbg.removeAllChannels()
-      subscription.unsubscribe(); // Unbinds the auth listener
     }
   },[])
   useEffect(()=> {
@@ -155,9 +145,10 @@ function RootFC() {
     set_showMerge(false)
     
     stts(`✔ done. `+idb.statStr(), "Saved")
-    const estimate = await navigator.storage.estimate();
-    console.log(`Total IndexedDB usage: ${estimate.usage?.toLocaleString()} bytes out of quota ${estimate.quota?.toLocaleString()}`);
-    // misc hist vecs      
+      if (navigator.storage)
+        navigator.storage.estimate().then( estimate=>
+          console.log(`Total IndexedDB usage: ${estimate.usage?.toLocaleString()} byte`
+          + `out of quota ${estimate.quota?.toLocaleString()}`))
   }
   const ts2up:idb.Tag[] = []
   function ups(ts: idb.Tag[]) {
