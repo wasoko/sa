@@ -7,8 +7,8 @@ import * as sb from '@supabase/supabase-js';
  * Also performs initial data fetch.
  */
 export async function subRt(sbc: sb.SupabaseClient) {
-  if (sub_user=== user?.id || !user?.id) return
-  sub_user = user?.id
+  if (sub_user=== sess?.user?.id || !sess?.user?.id) return
+  sub_user = sess?.user?.id
   console.log("Setting up Supabase Realtime subscription...");
   // 1. Initial Data Load
   // Fetch today's data initially to populate Dexie before listening for live changes
@@ -111,7 +111,7 @@ const tokenStorageAdapter = { getItem: async (key: string) => {
   setItem: async (key: string, value: string) => await storage?.set({ [key]: value }),
   removeItem: async (key: string) => await storage?.remove(key),
 };
-const sb_options = {auth:{    
+const sb_options = { auth: {
     autoRefreshToken: !isExt,// ??    // For Chrome extensions, disable auto-refresh to avoid redirect issues
     detectSessionInUrl: !isExt, // Prevent chromium-extension:// URL issues
     persistSession: true,
@@ -122,52 +122,41 @@ const SB_AUTH_NEXT = 'auth_next_path'
 export let sbg:sb.SupabaseClient = sb.createClient(DEF_TREE['server'], DEF_TREE['pub_key']
   , sb_options);
 let sess: sb.Session |null = null
-let user: sb.User |null = null
 let sub_user = ''
-sbg.auth.getSession().then(({ data: { session } }) => {
-  sess = session;
-  user = session?.user ?? null;
-});
+sbg.auth.getSession().then(({ data: { session } }) =>  sess = session);
 sbg.auth.onAuthStateChange((event, session) => {
   sess = session;
-  user = session?.user ?? null;
+  stts(sess?.user.email ??'', 'Sigin')
   if (event==='SIGNED_IN' && session) subRt(sbg)
   if (event==='SIGNED_OUT') fc.sideLog('SIGNED_OUT',sbg.removeAllChannels())
 });
 
 export async function signinGoogle() {
   const nextPath = window.location
-  if (!isExt) return sbg.auth.signInWithOAuth({ provider: 'google' 
-    , options:{redirectTo: nextPath.href
-          // , options: {redirectTo: `${window.location.origin}/auth-callback.html?next=${encodeURIComponent(nextPath.hash)}`
-        }})
   const { data, error } = await sbg.auth.signInWithOAuth({
-    provider: 'google', options: {
+    provider: 'google', options: isExt? {
+      skipBrowserRedirect: true, // Returns the URL instead of redirecting
       redirectTo: chrome.identity.getRedirectURL(),
-      skipBrowserRedirect: true // Returns the URL instead of redirecting
-    } });
-  // if (chrome.runtime.lastError || !responseUrl) {
-  if (error) return fc.sideLog('err signin Google: ', error)
-  chrome.identity.launchWebAuthFlow({ url: data.url,
-    interactive: true }, async (callbackUrl) => {
-      if (callbackUrl) {
-        // const url = new URL(callbackUrl);
-        const params = new URLSearchParams(new URL(callbackUrl).hash.substring(1));
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-        if (!access_token || !refresh_token) return fc.sideLog('err token missing', params)
-
-        // const code = url.searchParams.get('code') || url.hash.split('access_token=')[1]?.split('&')[0];
-        // const res = await sbg.auth.exchangeCodeForSession(code)
-        const res = await sbg.auth.setSession({access_token, refresh_token});
-        // console.info('',code)
-        sess = res.data.session
-        user = res.data.user
-            window.history.replaceState(null, '', nextPath.href);
-        // window.location.hash = nextPath.replace(/^#/, '')
-        // chrome.storage.local.set({SB_TOKEN: res.data})
+    }:{redirectTo: nextPath.href} });
+  if (error) return ['', fc.sideLog('err signin Google: ',error).message]
+  if (isExt) {
+    const callbackUrl = await chrome.identity.launchWebAuthFlow({ 
+      url: data.url, interactive: true }) //, async (callbackUrl) => {
+    if (callbackUrl) {
+      const params = new URLSearchParams(new URL(callbackUrl).hash.substring(1));
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      if (!access_token || !refresh_token) 
+        return ['',fc.sideLog('err token missing', params)]
+      const {data, error} = await sbg.auth.setSession({access_token, refresh_token});
+      sess = data.session
     }
-  })
+    window.history.replaceState(null, '', nextPath.href)
+  } else {
+    const {data, error} = await sbg.auth.getSession()
+    sess = data.session
+  }
+  return [sess?.user?.email ?? '', null]
 }
 export function set_sbg(server, pub_key) {
   // try {
@@ -179,7 +168,6 @@ export function set_sbg(server, pub_key) {
       sbg.realtime.disconnect(); 
       sbg.removeAllChannels();
       sess = null
-      user = null
     }
     sbg = tmp_sbc
   // }) } catch(e) {

@@ -22,7 +22,7 @@ export const HF_OR = [
 
 export function SideBar({tree, onChange_tree, onFlipSetup
   , download2merge, showMerge, mergeDiff, signinfo, signinGoogle, signinWeibo,signout
-  , upSnap, flipGrid, showGrid, refreshTag}) {
+  , upSnap, flipGrid, showGrid, refreshTag, children}) {
   const [showSetup, setShowSetup] = useState(false);
   const BTN_SIZE = '33px'
   React.useEffect(()=> {
@@ -49,6 +49,7 @@ export function SideBar({tree, onChange_tree, onFlipSetup
                 onChange={handleTreeChange(key)}
                 style={{flexGrow:1}} />
             </div> ))} 
+            {children}
           <pre id="sttsSignin"/>
           <pre id="sttsSync"/>
           <AsyncButton key="dl" onClick={download2merge}>Download</AsyncButton>
@@ -59,10 +60,10 @@ export function SideBar({tree, onChange_tree, onFlipSetup
           <pre id="sttsTagged"/>
           </div>)} 
       <aside style={{display:'flex', overflowX:'auto'}}>
-        {showSetup && <button onClick={() => setShowSetup(false)} title={"<"}><ChevronLeftCircle size={BTN_SIZE} /></button>}
+        {/* {showSetup && <button onClick={() => setShowSetup(false)} title={"<"}><ChevronLeftCircle size={BTN_SIZE} /></button>} */}
         <button title="Refresh" onClick={refreshTag}><RefreshCcwDot style={{ transform: 'scaleX(-1)'}} size={BTN_SIZE} /></button> 
         <button title='Grid' className={showGrid?'selected':''} onClick={flipGrid} ><Sheet size={BTN_SIZE} /></button>
-        <button title="Set" onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
+        <button title="Set"  className={showSetup?'selected':''} onClick={() => setShowSetup(!showSetup)}><Settings size={BTN_SIZE} /></button>
         <button><Search size={BTN_SIZE} /></button>
       </aside>
     </div>
@@ -70,7 +71,7 @@ export function SideBar({tree, onChange_tree, onFlipSetup
 }
 
 
-const AsyncButton = ({ onClick, children, loadingText = "…", ...props }) => {
+export const AsyncButton = ({ onClick, children, loadingText = "…", ...props }) => {
   const [isLoading, setIsLoading] = useState(false);
   const handleClick = async (e) => {
     setIsLoading(true);

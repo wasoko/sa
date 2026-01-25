@@ -5,7 +5,6 @@
     // "lib": ["ES2022", "DOM", "DOM.Iterable"],
       "lib": ["ESNext", "DOM", "WebWorker"],
     "types": ["vite/client"], // import.meta
-
     "module": "ESNext",
     "jsx": "react-jsx",
     "skipLibCheck": true,

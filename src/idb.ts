@@ -6,6 +6,13 @@ export interface Tag { tid?: number, txt: string, ref: string
   , sts?: string[], ats?:number[] // related tags
   , dt:Date, type: string } // dt=latest seen b4 save-tags , 'bookmark' | 'history' | 'tab' | 'tag'
 export const eqTags = (r1: Tag, r2: Tag) => r1.ref === r2.ref && r1.txt === r2.txt && r1.type== r2.type
+export async function clean() {
+  const now = new Date()
+  const null_dt = await db.tags.filter(t=> t.dt===undefined).toArray()
+  let updates = null_dt.map(t=> ({key:t.tid, changes:{dt: now}}))
+  if (updates.length >0) return await db.tags.bulkUpdate(updates)
+  return 0
+}
 export interface Refs {
 
   id?: number;
@@ -18,6 +25,7 @@ export interface Refs {
 }
 const modelEnum = {'Xenova/bge-small-zh-v1.5':15}
 export const DEF_TREE:{[key:string]: unknown} = { //"cred": "https://PROJECTID.supabase.co|anon"
+  "user_browser": "browserX",
   "server": 'https://qhumewjpkzxaltwefqch.supabase.co',
   "pub_key": 'sb_publishable_5Stcng45Jofw5Wv3FA4GnQ_BivUYQ_K',
   // , "emb_model-HF":HF_OR[0]
@@ -71,7 +79,6 @@ export async function getRowsAroundTid(tid: number, n: number) {
   const eq = await db.tags.get(tid)
   return [...b4.reverse(), eq , ...af] .filter(t=> t!==undefined);
 }
-// Create and export a singleton instance
 export const db = new DDB(); 
 
 async function stat_tags(){
@@ -98,6 +105,19 @@ async function stat_tags(){
     //(acc[s] = (acc[s] || 0) +1, acc), {})
     // if (str.length>33) return false  // to stop dexie cursor
   }
+  if(0) // 5s too slow
+    fc.nowWarn(performance.now(), ( // (op1, str) eval to str, ignoring op1
+  await db.tags.orderBy('[ref+type]').eachUniqueKey(async key => {
+    const collection = db.tags.where('[ref+type]').equals(key);
+    const count = await collection.count(); // Fast index-only scan
+    if (count > 1) {
+      const items = await collection.toArray(); // Only run if duplicates exist
+      const dts = items.map(i => i.dt.getTime());
+      str+=`\nDup ${count} [${new Date(Math.min(...dts))} ~ ${new Date(Math.max(...dts))}] `
+      + JSON.stringify(key);
+    }
+  }) , 'dup cnt'))
+
   return str
 }
 export async function statStr() {

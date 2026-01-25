@@ -9,7 +9,7 @@ import {  flexRender,createColumnHelper,useReactTable,
   SortingState,
 } from '@tanstack/react-table'; // ColumnDef,ColumnFiltersState,getFilteredRowModel,
 import * as idb from './idb'
-import { markdown2tab, stts, useDebounce } from './fc';
+import { markdown2tab, sideLog, stts, useDebounce } from './fc';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { upsRt } from './sub';
 import {DragTag} from './dragTag';
@@ -63,12 +63,12 @@ function useHiRows(search:string,tags:string[],tidNum?:number, tidLoc?:any) {
           return matchesTags && matchesSearch;
         })
       else if (tidNum==-1) 
-        return (await query.reverse().limit(222).toArray()).reverse() as HiRow[]
+        return sideLog('live 555',await query.reverse().limit(222).toArray()).reverse() satisfies HiRow[]
       else if (tidNum) 
-        return (await idb.getRowsAroundTid(tidNum, 33)) as HiRow[]
+        return (await idb.getRowsAroundTid(tidNum, 33)) satisfies HiRow[]
       // 3. Apply secondary filters (full AND for tags + text search)
       const res = await query.limit(555).toArray()
-      return res.map(t=>({txt:t.txt, sts:t.sts, ref:t.ref, locTid:t.tid})as HiRow)
+      return res.map(t=>({txt:t.txt, sts:t.sts, ref:t.ref, locTid:t.tid})satisfies HiRow)
     },  [search,tags,tidNum], [] //re-run when tags or search change, default [] empty prevent undefined
   );
 }
@@ -79,14 +79,26 @@ function HighlightedText ({ txt, sts, ref, locTid, locFn }:{
   // if (!sts.length) return <>{txt}</>;
   const escaped = sts.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
-  return ( <div> {locTid && <button onClick={()=>{locFn(locTid)}}>...</button>}
-    {locTid && <a title="locate popup..." href={`/?tid=${locTid}`}> </a>}
-      {sts.length==0? txt : txt.split(regex).map((part, i) =>
+  
+  const txtElem = (<div>{sts.length==0? txt : txt.split(regex).map((part, i) =>
         regex.test(part) ? (<span style={{ 
           backgroundColor: getColorChar11(part),color: 'white' 
           , cursor: 'default', margin: '0 2px', borderRadius: '4px', padding: '2px 6px'
-            }} key={i}> {part} </span>) : (<span key={i}>{part}</span>)
-      )}<a href={ref}>🔗</a></div>);
+            }} key={i}> {part} </span>) : (<span key={i}>{part}</span>)  )}</div>)
+  const matchedSts = new Set(txt.match(regex)?.map(m => m.toLowerCase()) || []);
+  const unmatchedSts = sts.filter(s => !matchedSts.has(s.toLowerCase()));
+  const commonStyle: React.CSSProperties = { display: 'inline-block',
+    cursor: 'default', margin: '0 2px', borderRadius: '4px', padding: '2px 6px',
+  };
+  const tagElem = (<div> {unmatchedSts.map((part, i) => ( <span key={`unmatched-${i}`} style={{ 
+          ...commonStyle,  border: `2px solid ${getColorChar11(part)}`, 
+          backgroundColor: 'transparent', }}> {part} </span>))}</div>)
+  const isSwapped = true
+
+  return ( <div style={{display:'flex', flexDirection: 'row', overflowX: 'hidden',}}> {locTid && <button onClick={()=>{locFn(locTid)}}>...</button>}
+    {locTid && <a title="locate popup..." href={`/?tid=${locTid}`}> </a>}
+    {tagElem} {txtElem}
+    <a href={ref}>🔗</a></div>);
 };
 const MSG_CROSS = '🗙 (drop)'
 export function ListTx({ups}) {
@@ -145,12 +157,16 @@ export function ListTx({ups}) {
     const pastedText = event.clipboardData?.getData('text/plain');
     if (!pastedText) return stts('cannot read pasted text')
     const ts = markdown2tab(pastedText).map(m=> ({type:'tab',txt:m.txt
-      , ref:m.ref, sts:['markdown','pasted']})as idb.Tag)
-    if (chrome) ts.forEach(t=>t.sts?.unshift(chrome.instanceID.getID()))
+      , ref:m.ref, sts:['markdown_pasted', ...m.sts], dt:new Date() })satisfies idb.Tag)
     if (ts.length===0) return stts('no markdown [title](url) in '+pastedText.slice(0,33)+'...')
-    idb.db.tags.bulkPut(ts).then(()=> stts(`${ts.length} urls saved.`))
+    idb.db.tags.bulkPut(sideLog('bulkput...',ts)).then(()=> 
+      stts(`${ts.length} urls saved.`))
   }
   useEffect(()=> {
+    const isNotGitHub = !window.location.origin.endsWith('.github.io');
+    if (isNotGitHub && window.location.pathname.startsWith('/sa/'))
+      navigate(`/${currentTagsPath || ''}${window.location.search}`, { replace: true })
+
     document.addEventListener('paste', handlePaste);
     return () => document.removeEventListener('paste', handlePaste);
   }, [])

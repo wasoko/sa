@@ -53,27 +53,82 @@ export const stts = (str: string, scope = '') => {
 export const scrollToTbodyN = (tbodyRef: React.RefObject<HTMLTableSectionElement>, n:number) => {
   if (tbodyRef.current && tbodyRef.current.children.length >0) {
     const i = n>=0? n: tbodyRef.current.children.length +n
-    const scrollableElement = tbodyRef.current.children[i] as HTMLElement;
+    const scrollableElement = tbodyRef.current.children[i] satisfies HTMLElement;
     scrollableElement.scrollIntoView({behavior: 'smooth',block:'nearest'});
   }
 }
 export function input2options(id:string, options:string[]) {
-  const input = document.getElementById(id) as HTMLInputElement;
-  const datalist = document.createElement('datalist') as HTMLDataListElement;
+  const input = document.getElementById(id) satisfies HTMLInputElement;
+  const datalist = document.createElement('datalist') satisfies HTMLDataListElement;
   if (input && datalist) {
     options.forEach(i => datalist.appendChild(Object.assign(document.createElement('option'), { value: i })));
     input.parentNode?.append(Object.assign(datalist, { id: 'datalist-' + input.id }));
     input.setAttribute('list', datalist.id);
   }
+} // let UT=1  ;if (typeof exports === 'undefined') { var exports = {}} // for bun repl
+const hashtagRegex = /\s#[\p{L}\p{N}_]+/gu
+const hashtail = /(?:\s+#[\p{L}\p{N}_]+#?)+$/gu;  // (?:... group non-capture
+const hashDelSymbols = /[^\p{L}\p{N}_]/gu
+export function t2txt(txt, sts:string[]) {
+    const exHash = txt.match(hashtagRegex)?.map((m:string)=> 
+      m.trim().slice(1).toLocaleLowerCase()) || []
+    // console.info(exHash)
+    return `${txt}${sts.filter(s=> !exHash.includes(s.toLocaleLowerCase()))
+        .map(s => ` #${s.replace(hashDelSymbols,'')}`).join('')}`
+}
+export function txtRx(txt) {
+  let cleaned = txt
+  let MIN_SUFFIX = 33
+  let sts:string[] = []
+  // if (txt.length <=MIN_SUFFIX) 
+  //   return [txt, sts]
+  ; let SEP =  [' - ', ' | ', '-','|',' _',' · ',' — ',' – ','/ X',' 鸡娃客','_哔哩哔哩_bilibili']
+  ; let offset = Math.max(...SEP.map(sep=> txt.lastIndexOf(sep)))
+  if (offset > Math.max(1,txt.length-MIN_SUFFIX)) {
+    // console.debug('txtRx:', txt.slice(offset,txt.length))
+    sts.unshift(`suffix_`+txt.slice(offset,txt.length).replace(hashDelSymbols, ''))
+    cleaned = txt.slice(0, offset).trim()
+  }
+  sts.unshift(...new Set(cleaned.match(hashtagRegex)?.map(s=> s.slice(1)) as string[]))
+  cleaned = cleaned.replace(hashtail,'')
+  ; let TERM = ['. ', '。','; ','；'] // first 
+  offset = Math.min(...TERM.map(sep=> cleaned.indexOf(sep, 33)).filter(o=>o!==-1)) // trunc long paragraph at nearest sentences
+  if (offset)  cleaned = cleaned.slice(0, offset).trim()
+  return [cleaned, sts]
+}if('undefined'!==typeof UT)["快讯：昆仑万维公告，第三季度营收为20.72亿元，同比增长56.16%；净利润为1.9亿元，同比增长180.13%。前三季度营收为58.05亿元，同比增长51.63%；净利润亏损6.65亿元，同比下降6.19%。 - 华尔街见闻"
+  , "快讯：中共中央关于制定国民经济和社会发展第十五个五年规划的建议发布。其中指出，适度超前建设新型基础设施，推进信息通信网络、全国一体化算力网、重大科技基础设施等建设和集约高效利用，推进传统基础设施更新和数智化改造。完善现代化综合交通运输体系，加强跨区域统筹布局、跨方式一体衔接，强化薄弱地区覆盖和通达保障。健全多元化、韧性强的国际运输通道体系。优化能源骨干通道布局，加力建设新型能源基础设施。加快建设现代化水网，增强洪涝灾害防御、水资源统筹调配、城乡供水保障能力。推进城市平急两用公共基础设施建设。 - 华尔街见闻"
+  , "平安保险在线客服,平安理赔查询,平安理赔系统- 中国平安官方直销网站"
+  , "中港通巴士 - Google Search"
+  , "由浅入深，万字解析：人民币的发行机制和汇率走势（下）_哔哩哔哩_bilibili"
+  , "开车必备！自动朗读微信通知的神器玩过吗-微信 ——快科技(驱动之家旗下媒体)--科技改变未来"
+  , "Watch 'Schonfeld University | Rates & Financing' | Microsoft Stream"
+  , "繫年 - 維基百科，自由的百科全書"
+  , "Bacterial Flagellar Motor #biology #science #bacterialflagellum - YouTube"
+  , "3~6年级竞赛数学导引（PDF扫描版，含详细解答） 鸡娃客"
+  , "👍九龍灣出租 EPSON FF-680W FastFoto scan 相片 相 高速掃描器, Computers & Tech, Printers, Scanners & Copiers on Carousell"
+  ].forEach(t=> console.log(txtRx(t)))
+export function txtref2tab(txt, ref) {
+  const [cleaned, sts] = txtRx(txt)
+  return { txt: cleaned, ref, sts} //: ['ref_'+cleanDomain(ref).replace('.','_'),...sts] }
 }
 export function markdown2tab(markdown: string) {
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g; // [title](url)
+  let rx =  /\[(.+)(?<!\\)\]\((.+)\)/g    // escape ]( in url
   const items = [];
   let match;
-  while ((match = linkRegex.exec(markdown)) !== null) 
-    items.push({ txt: match[1], ref: match[2], })
-  return items
-}
+  while ((match = rx.exec(markdown)) !== null) 
+    items.push(txtref2tab(match[1], match[2].replaceAll('\\](','](')))
+  return items  // undo escape added from popup.tsx
+} 
+if('undefined'!==typeof UT) ['[t\\](UR](L)','[t](UR\\](L)','[t](UR](L)'].map(s=> (/\[(.+)(?<!\\)\]\((.+)\)/g.exec(s)))
+export function cleanDomain(url: string) {
+    // Remove protocol (http://, https://) and optional "www."
+    if (url.startsWith('file:'))
+      return url.slice(7, url.indexOf('\/',11))
+    const cleanUrl = url.replace(/https?:\/\/(www\.)?/, '');
+    return cleanUrl.split('/')[0]
+} ['file:///C:/Users/wso/Downloads/JIRA.html', 'file://ny5-na-risk-01.corp.schonfeld.com/risk_vol1/src/barra/BarraOptimizer9.0/doc/Optimizer_User_Guide.pdf'
+  ,'blah.co.uk', 'news.yahoo.co.jp', 'tsmc.com.tw', 'news.google.com', 'news.google.com.hk',
+].forEach(r=> console.log(cleanDomain(r)))
 
 export function useDebounce(value, delay=400) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -215,7 +270,7 @@ export function logRet(...data: any[]) {
   console.log(data)
   return data.join('')
 }
-export  function sideLog(msg:string, _stuff:unknown, ...data:any[]) {
+export  function sideLog(msg:string, _stuff:any, ...data:any[]) {
   console.log(msg, _stuff, data)
   return _stuff
 }
@@ -240,7 +295,11 @@ export function nowWarn(start: DOMHighResTimeStamp, scope:string, note='', msWar
   }
   return performance.now()
 }
-
+export function userAgentStr() {
+  return navigator.userAgentData?.brands?.map(b => b.brand)
+  .find(b => !b.startsWith('Not') && !b.startsWith('Chromium')) 
+  || navigator.userAgent.match(/(\w+)\/([\d.]+)/)?.[1] || 'BrowserX'
+}
 // Generics (? lodash)
 export function topFew<T>(k: number, arr: T[], compare: (a: T, b: T) => number = (a: any, b: any) => a-b): T[] {
   if(k >=arr.length) return arr
@@ -253,9 +312,6 @@ export function topFew<T>(k: number, arr: T[], compare: (a: T, b: T) => number =
   }
   return result;
 }
-const hashtagRegex = /\B#[\p{L}\p{N}_]+/gu;
-const trailingHashtagRegex = /(?:\s*#[\p{L}\p{N}_]+)+$/gu;
-export const trimTrailingHashtags=(text:string) =>text.replace( trailingHashtagRegex,"").trimEnd()
 
 export const diffDays = (d1, d2) => (d1-d2)/(1000 *60*60 *24)
 export function fmt_ym(dt) { 

@@ -21,11 +21,11 @@ importers:
         specifier: 1.6.0
         version: 1.6.0
       dexie:
-        specifier: ^3.2.7
-        version: 3.2.7
+        specifier: ^4.2.1
+        version: 4.2.1
       dexie-react-hooks:
-        specifier: ^1.1.7
-        version: 1.1.7(@types/react@19.2.7)(dexie@3.2.7)(react@19.2.1)
+        specifier: ^4.2.0
+        version: 4.2.0(@types/react@19.2.7)(dexie@4.2.1)(react@19.2.1)
       es-toolkit:
         specifier: ^1.43.0
         version: 1.43.0
@@ -781,16 +781,15 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  dexie-react-hooks@1.1.7:
-    resolution: {integrity: sha512-Lwv5W0Hk+uOW3kGnsU9GZoR1er1B7WQ5DSdonoNG+focTNeJbHW6vi6nBoX534VKI3/uwHebYzSw1fwY6a7mTw==}
+  dexie-react-hooks@4.2.0:
+    resolution: {integrity: sha512-u7KqTX9JpBQK8+tEyA9X0yMGXlSCsbm5AU64N6gjvGk/IutYDpLBInMYEAEC83s3qhIvryFS+W+sqLZUBEvePQ==}
     peerDependencies:
       '@types/react': '>=16'
-      dexie: ^3.2 || ^4.0.1-alpha
+      dexie: '>=4.2.0-alpha.1 <5.0.0'
       react: '>=16'
 
-  dexie@3.2.7:
-    resolution: {integrity: sha512-2a+BXvVhY5op+smDRLxeBAivE7YcYaneXJ1la3HOkUfX9zKkE/AJ8CNgjiXbtXepFyFmJNGSbmjOwqbT749r/w==}
-    engines: {node: '>=6.0'}
+  dexie@4.2.1:
+    resolution: {integrity: sha512-Ckej0NS6jxQ4Po3OrSQBFddayRhTCic2DoCAG5zacOfOVB9P2Q5Xc5uL/nVa7ZVs+HdMnvUPzLFCB/JwpB6Csg==}
 
   enhanced-resolve@5.18.3:
     resolution: {integrity: sha512-d4lC8xfavMeBjzGr2vECC3fsGXziXZQyJxD868h2M/mBI3PwAuODxAkLkq5HYuvrPYcUtiLzsTo8U3PgX3Ocww==}
@@ -1658,13 +1657,13 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  dexie-react-hooks@1.1.7(@types/react@19.2.7)(dexie@3.2.7)(react@19.2.1):
+  dexie-react-hooks@4.2.0(@types/react@19.2.7)(dexie@4.2.1)(react@19.2.1):
     dependencies:
       '@types/react': 19.2.7
-      dexie: 3.2.7
+      dexie: 4.2.1
       react: 19.2.1
 
-  dexie@3.2.7: {}
+  dexie@4.2.1: {}
 
   enhanced-resolve@5.18.3:
     dependencies:

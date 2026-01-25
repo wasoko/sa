@@ -66,25 +66,28 @@ function RootFC() {
           console.log(`Total IndexedDB usage: ${estimate.usage?.toLocaleString()} byte`
           + `out of quota ${estimate.quota?.toLocaleString()}`))
     }) ()
-    return ()=> {
-      active = false; // Prevents async state updates on unmounted component
-    }
+    return ()=> { active = false }
   },[])
+  useEffect(()=> {
+    if (tree.user_browser && tree.user_browser!==idb.DEF_TREE["user_browser"]) return
+    setTree(prev => ({...prev, user_browser: fc.userAgentStr() }))
+    idb.db.tree.put({ key:'user_browser', value: tree.user_browser})
+  }, [tree.user_browser])
   useEffect(()=> {
     let active=true
     if (!active) return
     if (!tree.server || !tree.pub_key) return
     // if (tree.server==='' && tree.pub_key==='') idb.DEF_TREE  // TODO reset
     if (tree.server==='' || tree.pub_key==='') return
-    sub.set_sbg(tree.server, tree.pub_key, (sbg)=> {
-    })
-    return()=> active=false
+    sub.set_sbg(tree.server, tree.pub_key,)
+    return()=> {active=false}
   }, [tree.server, tree.pub_key])
   async function signinWeibo() {
     
   }
   async function signout() {
     await sbg.auth.signOut({ scope: 'local' });
+    set_signinfo('')
   }
   async function onFlipSetup(showSetup) {
     if (!showSetup) return
@@ -118,6 +121,7 @@ function RootFC() {
   const dlDiff = React.useRef<ReturnType<typeof idb.diffTags>>( nullDiff)
   async function dl2diff(){
     if(!sbg) return stts('cred not connecting.')
+    stts(`idb.clean: ${await idb.clean()}`)
     const ts = await idb.db.tags.toArray()
     let sttr = ''
     stts((sttr = sttr +`downloading `)+'...')
