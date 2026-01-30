@@ -143,8 +143,7 @@ function RootFC() {
     idb.db.tags.bulkPut( dlDiff.current.newDL)
     
     stts((sttr = sttr +`✔. upserting ${dlDiff.current.clash.length} clash `)+'...')
-    const lastTag = await idb.db.tags.orderBy(':id').last()
-    sub.upsRt(dlDiff.current.clash, sbg, lastTag?.tid ?? 1 )
+    sub.upsRt(dlDiff.current.clash, sbg, (await idb.tid_last())?.tid ?? 1 )
     dlDiff.current = nullDiff
     set_showMerge(false)
     
@@ -158,7 +157,7 @@ function RootFC() {
   function ups(ts: idb.Tag[]) {
     ts2up.unshift(...ts)
     if (!sbg) return
-    idb.db.tags.orderBy(':id').last().then(last=> 
+    idb.tid_last().then(last=> 
       sub.upsRt(ts, sbg, last?.tid?? 1).then(()=> ts2up.length = 0))
   }
   async function refreshTag() {

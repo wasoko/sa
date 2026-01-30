@@ -1,4 +1,3 @@
-
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, PanInfo } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -9,9 +8,9 @@ import {  flexRender,createColumnHelper,useReactTable,
   SortingState,
 } from '@tanstack/react-table'; // ColumnDef,ColumnFiltersState,getFilteredRowModel,
 import * as idb from './idb'
-import { markdown2tab, sideLog, stts, useDebounce } from './fc';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { upsRt } from './sub';
+import { markdown2tab, sideLog, str2tag, stts, txtref2tab, useDebounce } from './fc';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { sbg, subRt, upsRt } from './sub';
 import {DragTag} from './dragTag';
 // import { MinimalTextRank, textRankRobust } from '../textrank';
 // Define the shape of your data
@@ -63,7 +62,7 @@ function useHiRows(search:string,tags:string[],tidNum?:number, tidLoc?:any) {
           return matchesTags && matchesSearch;
         })
       else if (tidNum==-1) 
-        return sideLog('live 555',await query.reverse().limit(222).toArray()).reverse() satisfies HiRow[]
+        return sideLog('live 555',await query.reverse().limit(222).toArray()) satisfies HiRow[]
       else if (tidNum) 
         return (await idb.getRowsAroundTid(tidNum, 33)) satisfies HiRow[]
       // 3. Apply secondary filters (full AND for tags + text search)
@@ -74,17 +73,19 @@ function useHiRows(search:string,tags:string[],tidNum?:number, tidLoc?:any) {
 }
 
 // ──────── Highlighted text (unchanged) ────────
-function HighlightedText ({ txt, sts, ref, locTid, locFn }:{ 
-  txt: string, sts: string[], ref?: string, locTid?:number, locFn }) {
+function HighlightedText ({ txt, sts, ref, locTid, ...fs }:{ 
+  txt: string, sts: string[], ref: string, locTid?:number
+  , locFn:(tid:number)=>void, navTag:(tag:string)=>void }) {
   // if (!sts.length) return <>{txt}</>;
-  const escaped = sts.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const escaped = sts.sort((a,b)=>b.length-a.length)
+    .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
   
   const txtElem = (<div>{sts.length==0? txt : txt.split(regex).map((part, i) =>
         regex.test(part) ? (<span style={{ 
           backgroundColor: getColorChar11(part),color: 'white' 
           , cursor: 'default', margin: '0 2px', borderRadius: '4px', padding: '2px 6px'
-            }} key={i}> {part} </span>) : (<span key={i}>{part}</span>)  )}</div>)
+            }} key={i} onClick={()=>{fs.navTag(ref)}}> {part} </span>) : (<span key={i}>{part}</span>)  )}</div>)
   const matchedSts = new Set(txt.match(regex)?.map(m => m.toLowerCase()) || []);
   const unmatchedSts = sts.filter(s => !matchedSts.has(s.toLowerCase()));
   const commonStyle: React.CSSProperties = { display: 'inline-block',
@@ -95,10 +96,10 @@ function HighlightedText ({ txt, sts, ref, locTid, locFn }:{
           backgroundColor: 'transparent', }}> {part} </span>))}</div>)
   const isSwapped = true
 
-  return ( <div style={{display:'flex', flexDirection: 'row', overflowX: 'hidden',}}> {locTid && <button onClick={()=>{locFn(locTid)}}>...</button>}
+  return ( <div style={{display:'flex', flexDirection: 'row', overflowX: 'hidden',}}> {locTid && <button onClick={()=>{fs.locFn(locTid)}}>...</button>}
     {locTid && <a title="locate popup..." href={`/?tid=${locTid}`}> </a>}
     {tagElem} {txtElem}
-    <a href={ref}>🔗</a></div>);
+    <Link to={ref}>🔗</Link></div>);
 };
 const MSG_CROSS = '🗙 (drop)'
 export function ListTx({ups}) {
@@ -124,7 +125,8 @@ export function ListTx({ups}) {
   useMemo(() => [createColumnHelper<HiRow>().accessor('txt', {
         cell: ({ row }) => (
           <HighlightedText txt={row.original.txt} sts={row.original.sts??[]}
-          ref={row.original.ref} locTid={row.original.locTid} locFn={loc} />
+          ref={row.original.ref} locTid={row.original.locTid} locFn={loc} 
+          navTag={(tag)=>navigate('/'+tag)}/>
         ), }),], [debSearch, selectedTags, tidNum]);
   async function addTag(str:string){
     if (selectedTags.includes(str))return
@@ -188,7 +190,9 @@ export function ListTx({ups}) {
           // onChange={e => setSearch(e.target.value)}
           onKeyDown={e=> {
             if(e.key==='Escape') set_showEditTag(false)
-            if(e.key!=='Enter') return
+            if(e.key!=='Enter' && tag2edit)
+              idb.db.tags.put({...tag2edit,...str2tag(e.currentTarget.value)})
+            .then(async pk=> upsRt([await idb.db.tags.get(pk)],sbg, (await idb.tid_last()) ??1 ) )
           }} /> </div>
           :
           <input type="text" style={{flexGrow:1, minWidth:'111px', maxWidth:'88vw', fieldSizing:'content', width:'auto'}}

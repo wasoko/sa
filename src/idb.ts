@@ -6,11 +6,13 @@ export interface Tag { tid?: number, txt: string, ref: string
   , sts?: string[], ats?:number[] // related tags
   , dt:Date, type: string } // dt=latest seen b4 save-tags , 'bookmark' | 'history' | 'tab' | 'tag'
 export const eqTags = (r1: Tag, r2: Tag) => r1.ref === r2.ref && r1.txt === r2.txt && r1.type== r2.type
+export const tid_last = async ()=>await db.tags.orderBy(':id').last()
 export async function clean() {
   const now = new Date()
   const null_dt = await db.tags.filter(t=> t.dt===undefined).toArray()
   let updates = null_dt.map(t=> ({key:t.tid, changes:{dt: now}}))
   if (updates.length >0) return await db.tags.bulkUpdate(updates)
+  
   return 0
 }
 export interface Refs {
@@ -81,6 +83,7 @@ export async function getRowsAroundTid(tid: number, n: number) {
 }
 export const db = new DDB(); 
 
+export const dev_PREFFIX = 'dev_'
 async function stat_tags(){
   let str = ''
   const dts = await db.tags.orderBy('dt').reverse().limit(11).uniqueKeys()
@@ -94,13 +97,13 @@ async function stat_tags(){
     // const cnt = ts.filter(t=> t.type!=='tab')
     str += ` max(tid)=${Math.max(...tsa.map(t=> t.tid ?? 0))}`
     const alltags = tsa.flatMap(t=>t.sts ??[])
-    const tags = alltags.filter(t=>!t.startsWith('dev:'))
+    const tags = alltags.filter(t=>!t.startsWith(dev_PREFFIX))
     if (tags.length >0)
       str += ` top tags: ${JSON.stringify( Object.fromEntries( fc.topFew(3, 
         Object.entries( countBy(tags, x=>x)))))}`
     if (alltags.length === tags.length) continue
-    const cntdev = countBy(alltags.filter(t=> t.startsWith('dev:')), x=> x.substring(4))
-    str += ` dev: ${JSON.stringify(cntdev)}`
+    const cntdev = countBy(alltags.filter(t=> t.startsWith(dev_PREFFIX)), x=> x.substring(4))
+    str += ` `+dev_PREFFIX +JSON.stringify(cntdev)
     //.reduce((acc, s)=>
     //(acc[s] = (acc[s] || 0) +1, acc), {})
     // if (str.length>33) return false  // to stop dexie cursor

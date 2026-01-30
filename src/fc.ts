@@ -1,9 +1,9 @@
-
 import * as cbor from 'cbor-x';
 import { keyBy } from 'es-toolkit';
 import { object } from 'framer-motion/client';
 import * as pako from 'pako';
 import { useEffect, useState } from 'react';
+export const isBun = "undefined" !=  typeof Bun
 export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }
 export const HF_OR = [  //'Xenova/jina-embeddings-v2-base-zh',
   // https://developer.volcengine.com/articles/7382408396873400371
@@ -69,14 +69,14 @@ export function input2options(id:string, options:string[]) {
 const hashtagRegex = /\s#[\p{L}\p{N}_]+/gu
 const hashtail = /(?:\s+#[\p{L}\p{N}_]+#?)+$/gu;  // (?:... group non-capture
 const hashDelSymbols = /[^\p{L}\p{N}_]/gu
-export function t2txt(txt, sts:string[]) {
+export function t2txt(txt:string, sts:string[]) {
     const exHash = txt.match(hashtagRegex)?.map((m:string)=> 
       m.trim().slice(1).toLocaleLowerCase()) || []
     // console.info(exHash)
-    return `${txt}${sts.filter(s=> !exHash.includes(s.toLocaleLowerCase()))
-        .map(s => ` #${s.replace(hashDelSymbols,'')}`).join('')}`
+    return `${txt} ${sts.filter(s=> !exHash.includes(s.toLocaleLowerCase()))
+        .map(s => ` ${s.replace(hashDelSymbols,'')}`).join('')}`
 }
-export function txtRx(txt) {
+export function txtRx(txt:string) {
   let cleaned = txt
   let MIN_SUFFIX = 33
   let sts:string[] = []
@@ -92,10 +92,11 @@ export function txtRx(txt) {
   sts.unshift(...new Set(cleaned.match(hashtagRegex)?.map(s=> s.slice(1)) as string[]))
   cleaned = cleaned.replace(hashtail,'')
   ; let TERM = ['. ', '。','; ','；'] // first 
-  offset = Math.min(...TERM.map(sep=> cleaned.indexOf(sep, 33)).filter(o=>o!==-1)) // trunc long paragraph at nearest sentences
+  const keepcode = cleaned.indexOf('`', cleaned.indexOf('`')+1)  // keep `code`
+  offset = Math.min(...TERM.map(sep=> cleaned.indexOf(sep, Math.max(33, keepcode))).filter(o=>o!==-1)) // trunc long paragraph at nearest sentences
   if (offset)  cleaned = cleaned.slice(0, offset).trim()
   return [cleaned, sts]
-}if('undefined'!==typeof UT)["快讯：昆仑万维公告，第三季度营收为20.72亿元，同比增长56.16%；净利润为1.9亿元，同比增长180.13%。前三季度营收为58.05亿元，同比增长51.63%；净利润亏损6.65亿元，同比下降6.19%。 - 华尔街见闻"
+} if(isBun)["快讯：昆仑万维公告，第三季度营收为20.72亿元，同比增长56.16%；净利润为1.9亿元，同比增长180.13%。前三季度营收为58.05亿元，同比增长51.63%；净利润亏损6.65亿元，同比下降6.19%。 - 华尔街见闻"
   , "快讯：中共中央关于制定国民经济和社会发展第十五个五年规划的建议发布。其中指出，适度超前建设新型基础设施，推进信息通信网络、全国一体化算力网、重大科技基础设施等建设和集约高效利用，推进传统基础设施更新和数智化改造。完善现代化综合交通运输体系，加强跨区域统筹布局、跨方式一体衔接，强化薄弱地区覆盖和通达保障。健全多元化、韧性强的国际运输通道体系。优化能源骨干通道布局，加力建设新型能源基础设施。加快建设现代化水网，增强洪涝灾害防御、水资源统筹调配、城乡供水保障能力。推进城市平急两用公共基础设施建设。 - 华尔街见闻"
   , "平安保险在线客服,平安理赔查询,平安理赔系统- 中国平安官方直销网站"
   , "中港通巴士 - Google Search"
@@ -107,10 +108,15 @@ export function txtRx(txt) {
   , "3~6年级竞赛数学导引（PDF扫描版，含详细解答） 鸡娃客"
   , "👍九龍灣出租 EPSON FF-680W FastFoto scan 相片 相 高速掃描器, Computers & Tech, Printers, Scanners & Copiers on Carousell"
   ].forEach(t=> console.log(txtRx(t)))
-export function txtref2tab(txt, ref) {
+export function txtref2tab(txt:string, ref:string) {
   const [cleaned, sts] = txtRx(txt)
   return { txt: cleaned, ref, sts} //: ['ref_'+cleanDomain(ref).replace('.','_'),...sts] }
 }
+export function str2tag(str:string ) {
+  const all = str.split(/\s+/)
+  const hash = all.filter(s=> s.startsWith('#'))
+  return {txt: hash.join(' '),  sts:all.filter(s=>!s.startsWith('#'))}
+} if(isBun) ['test   as',].forEach(s=> console.log(s))
 export function markdown2tab(markdown: string) {
   let rx =  /\[(.+)(?<!\\)\]\((.+)\)/g    // escape ]( in url
   const items = [];
@@ -118,15 +124,14 @@ export function markdown2tab(markdown: string) {
   while ((match = rx.exec(markdown)) !== null) 
     items.push(txtref2tab(match[1], match[2].replaceAll('\\](','](')))
   return items  // undo escape added from popup.tsx
-} 
-if('undefined'!==typeof UT) ['[t\\](UR](L)','[t](UR\\](L)','[t](UR](L)'].map(s=> (/\[(.+)(?<!\\)\]\((.+)\)/g.exec(s)))
+} if(isBun) ['[t\\](UR](L)','[t](UR\\](L)','[t](UR](L)'].map(s=> (/\[(.+)(?<!\\)\]\((.+)\)/g.exec(s)))
 export function cleanDomain(url: string) {
     // Remove protocol (http://, https://) and optional "www."
     if (url.startsWith('file:'))
       return url.slice(7, url.indexOf('\/',11))
     const cleanUrl = url.replace(/https?:\/\/(www\.)?/, '');
     return cleanUrl.split('/')[0]
-} ['file:///C:/Users/wso/Downloads/JIRA.html', 'file://ny5-na-risk-01.corp.schonfeld.com/risk_vol1/src/barra/BarraOptimizer9.0/doc/Optimizer_User_Guide.pdf'
+} if(isBun) ['file:///C:/Users/wso/Downloads/JIRA.html', 'file://ny5-na-risk-01.corp.schonfeld.com/risk_vol1/src/barra/BarraOptimizer9.0/doc/Optimizer_User_Guide.pdf'
   ,'blah.co.uk', 'news.yahoo.co.jp', 'tsmc.com.tw', 'news.google.com', 'news.google.com.hk',
 ].forEach(r=> console.log(cleanDomain(r)))
 
@@ -297,11 +302,12 @@ export function nowWarn(start: DOMHighResTimeStamp, scope:string, note='', msWar
 }
 export function userAgentStr() {
   return navigator.userAgentData?.brands?.map(b => b.brand)
-  .find(b => !b.startsWith('Not') && !b.startsWith('Chromium')) 
+  .find(b => !['Not','Chromium','Mozilla'].some(p=>b.startsWith(p)) ) 
   || navigator.userAgent.match(/(\w+)\/([\d.]+)/)?.[1] || 'BrowserX'
 }
 // Generics (? lodash)
-export function topFew<T>(k: number, arr: T[], compare: (a: T, b: T) => number = (a: any, b: any) => a-b): T[] {
+export function topFew<T>(k: number, arr: T[]
+  , compare: (a: T, b: T) => number = (a: any, b: any) => a-b): T[] {
   if(k >=arr.length) return arr
   const result: T[] = arr.slice(0, k); 
   for (const item of arr) {
